@@ -12,6 +12,7 @@ statement-block ::= "{" statement* "}
 statement ::= statement-block
             | declaration
             | expression ";"
+            | "return" expression ";"
 
 expression ::= "(" expression ")"
              | expression binary-operator expression
