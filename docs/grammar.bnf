@@ -1,0 +1,34 @@
+program ::= declaration+
+
+declaration ::= function-definition
+              | variable-declaration
+
+function-definition ::= "fn" identifier "(" { function-argument ( "," function-argument )* } ")" "->" type statement-block
+
+variable-declaration ::= "let" identifier ":" type "=" expression ";"
+
+statement-block ::= "{" statement* "}
+
+statement ::= statement-block
+            | declaration
+            | expression ";"
+
+expression ::= "(" expression ")"
+             | expression binary-operator expression
+             | unary-operator expression
+             | identifier "(" { expression ( "," expression )* } ")"
+
+binary-operator ::= "=" | "+" | "-" | "<<" | ">>" | "&" | "|" | "^"
+unary-operator ::= "+" | "-" | "~" | "++" | "--"
+
+type ::= "void"
+       | "u16"
+       | "i16"
+
+letter ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z"
+
+digit ::= "0" | "1" | ... | "9"
+
+identifier ::= letter ( letter | digit | "_" )+
+
+integer_literal ::= digit+ { "b" | "o" | "d" | "h" }
