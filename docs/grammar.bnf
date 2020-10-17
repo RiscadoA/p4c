@@ -1,4 +1,4 @@
-program ::= declaration+
+program ::= declaration*
 
 declaration ::= function-definition
               | variable-declaration

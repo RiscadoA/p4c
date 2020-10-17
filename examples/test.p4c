@@ -1,0 +1,4 @@
+// Lexer test
+fn add(x: i16, y: i16) -> void {
+	return x + y;
+}
