@@ -1,6 +1,5 @@
 #include <p4c/lexer.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 
 const p4c_token_info_t P4C_TINFO_VOID = { P4C_TOKEN_VOID, P4C_TRUE, P4C_FALSE, P4C_FALSE, "void" };
@@ -225,12 +224,12 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 #undef KEYWORD_TOK
 }
 
-void p4c_print_token(const p4c_token_t* token) {
+void p4c_print_token(FILE* f, const p4c_token_t* token) {
 	if (token->attribute_sz > 0) {
-		fprintf(stdout, "'%s'(%.*s)", token->info->name, token->attribute_sz, token->attribute);
+		fprintf(f, "'%s'(%.*s)", token->info->name, token->attribute_sz, token->attribute);
 	}
 	else {
-		fprintf(stdout, "'%s'", token->info->name);
+		fprintf(f, "'%s'", token->info->name);
 	}
 }
 

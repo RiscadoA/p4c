@@ -2,6 +2,8 @@
 
 #include <p4c/utils.h>
 
+#include <stdio.h>
+
 typedef struct {
 	p4c_enum_t type;
 	p4c_bool_t is_type;
@@ -16,7 +18,7 @@ typedef struct {
 	int	attribute_sz;			// Number of bytes in the attribute string
 } p4c_token_t;
 
-void p4c_print_token(const p4c_token_t* token);
+void p4c_print_token(FILE* f, const p4c_token_t* token);
 
 int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 

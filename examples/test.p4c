@@ -1,7 +1,6 @@
 fn fast_mul(x: u16, y: u16) -> u16 {
 	if y & 1 == 0 {
-		let z: u16 = mul(x, y >> 1);
-		return z + z;
+		return mul(x, y >> 1) << 1;
 	}
 	else {
 		return x + mul(x, y - 1);

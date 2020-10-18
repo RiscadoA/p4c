@@ -1,6 +1,6 @@
 #include <p4c/parser.h>
 
-#include <stdio.h>
+
 #include <stdlib.h>
 
 const p4c_token_info_t P4C_TINFO_PARAMS = { P4C_TOKEN_PARAMS, P4C_FALSE, P4C_FALSE, P4C_FALSE, "params" };
@@ -683,9 +683,9 @@ static p4c_node_t* p4c_parse_program(p4c_parser_state_t* state) {
 	return root;
 }
 
-void p4c_print_node(const p4c_node_t* node, int indentation) {
+void p4c_print_node(FILE* f, const p4c_node_t* node, int indentation) {
 	for (int i = 0; i < indentation; ++i) {
-		fprintf(stdout, "  ");
+		fprintf(f, "  ");
 	}
 
 	const char* name = "ROOT";
@@ -694,15 +694,15 @@ void p4c_print_node(const p4c_node_t* node, int indentation) {
 	}
 
 	if (node->attribute_sz > 0) {
-		fprintf(stdout, "'%s'(%.*s)\n", name, node->attribute_sz, node->attribute);
+		fprintf(f, "'%s'(%.*s)\n", name, node->attribute_sz, node->attribute);
 	}
 	else {
-		fprintf(stdout, "'%s'\n", name);
+		fprintf(f, "'%s'\n", name);
 	}
 
 	const p4c_node_t* c = node->first;
 	while (c != NULL) {
-		p4c_print_node(c, indentation + 1);
+		p4c_print_node(f, c, indentation + 1);
 		c = c->next;
 	}
 }
