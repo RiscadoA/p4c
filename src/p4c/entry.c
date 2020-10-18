@@ -2,16 +2,21 @@
 #include <stdlib.h>
 
 #include <p4c/lexer.h>
+#include <p4c/parser.h>
 
-/*
-    Usage:
-        p4c [-o outfile] infile...
-*/
+const char* HELP_MESSAGE = "Compiles one or more .p4c files into one P4 assembly file.\n"
+                           "Usage:\n"
+                           "\tp4c [-o outfile] infile...\n";
 
 int main(int argc, char** argv) {
     int in_file_count = 0;
     const char** in_files;
     const char* out_file;
+
+    if (argc > 1 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
+        fprintf(stdout, "%s", HELP_MESSAGE);
+        return 0;
+    }
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-o") == 0) {
@@ -72,10 +77,23 @@ int main(int argc, char** argv) {
     p4c_token_t* tokens = (p4c_token_t*)malloc(65536 * sizeof(p4c_token_t));
     int token_count = p4c_run_lexer(in_source_code[0], tokens, 65536);
 
+    fprintf(stdout, "--- Tokens ---\n");
     for (int i = 0; i < token_count; ++i) {
         p4c_print_token(&tokens[i]);
         fprintf(stdout, "\n");
     }
+
+    // Run parser
+    p4c_node_t* nodes = (p4c_node_t*)malloc(65536 * sizeof(p4c_node_t));
+    p4c_node_t* ast = p4c_run_parser(tokens, token_count, nodes, 65536);
+
+    fprintf(stdout, "--- AST ---\n");
+    p4c_print_node(ast, 0);
+
+    // Clean-up
+
+    free(ast);
+    free(tokens);
 
     for (int i = 0; i < in_file_count; ++i) {
         free(in_source_code[i]);

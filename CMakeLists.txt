@@ -4,6 +4,7 @@ project(p4c-compiler)
 set(SOURCES
     "src/p4c/entry.c"
     "src/p4c/lexer.c"
+    "src/p4c/parser.c"
 )
 
 add_executable(p4c ${SOURCES})

@@ -2,6 +2,24 @@
 
 #include <p4c/utils.h>
 
+typedef struct {
+	p4c_enum_t type;
+	p4c_bool_t is_type;
+	p4c_bool_t is_punctuation;
+	p4c_bool_t is_operator;
+	const char* name;
+} p4c_token_info_t;
+
+typedef struct {
+	const p4c_token_info_t* info;
+	const char* attribute;		// Points to the beginning of the attribute string
+	int	attribute_sz;			// Number of bytes in the attribute string
+} p4c_token_t;
+
+void p4c_print_token(const p4c_token_t* token);
+
+int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
+
 #define P4C_TOKEN_VOID					0x00
 #define P4C_TOKEN_I16					0x01
 #define P4C_TOKEN_U16					0x02
@@ -33,6 +51,11 @@
 #define P4C_TOKEN_BINARY_XOR			0x3D
 #define P4C_TOKEN_BINARY_NOT			0x3E
 #define P4C_TOKEN_ASSIGN				0x3F
+#define P4C_TOKEN_SHL					0x40
+#define P4C_TOKEN_SHR					0x41
+#define P4C_TOKEN_INC					0x42
+#define P4C_TOKEN_DEC					0x43
+#define P4C_TOKEN_MEMBER				0x44
 
 #define P4C_TOKEN_OPEN_BRACES			0x50
 #define P4C_TOKEN_CLOSE_BRACES			0x51
@@ -45,20 +68,50 @@
 #define P4C_TOKEN_COMMA					0x58
 #define P4C_TOKEN_ARROW					0x59
 
-typedef struct {
-	p4c_enum_t type;
-	p4c_bool_t is_type;
-	p4c_bool_t is_punctuation;
-	p4c_bool_t is_operator;
-	const char* name;
-} p4c_token_info_t;
+const p4c_token_info_t P4C_TINFO_VOID;
+const p4c_token_info_t P4C_TINFO_I16;
+const p4c_token_info_t P4C_TINFO_U16;
 
-typedef struct {
-	const p4c_token_info_t* info;
-	const char* attribute;		// Points to the beginning of the attribute string
-	int	attribute_sz;			// Number of bytes in the attribute string
-} p4c_token_t;
+const p4c_token_info_t P4C_TINFO_INT_LITERAL;
+const p4c_token_info_t P4C_TINFO_IDENTIFIER;
 
-void p4c_print_token(const p4c_token_t* token);
+const p4c_token_info_t P4C_TINFO_FUNCTION;
+const p4c_token_info_t P4C_TINFO_IF;
+const p4c_token_info_t P4C_TINFO_ELSE;
+const p4c_token_info_t P4C_TINFO_WHILE;
+const p4c_token_info_t P4C_TINFO_FOR;
+const p4c_token_info_t P4C_TINFO_RETURN;
+const p4c_token_info_t P4C_TINFO_LET;
 
-int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
+const p4c_token_info_t P4C_TINFO_ADD;
+const p4c_token_info_t P4C_TINFO_SUBTRACT;
+const p4c_token_info_t P4C_TINFO_EQUAL;
+const p4c_token_info_t P4C_TINFO_DIFFERENT;
+const p4c_token_info_t P4C_TINFO_GREATER;
+const p4c_token_info_t P4C_TINFO_LESS;
+const p4c_token_info_t P4C_TINFO_GEQUAL;
+const p4c_token_info_t P4C_TINFO_LEQUAL;
+const p4c_token_info_t P4C_TINFO_LOGICAL_AND;
+const p4c_token_info_t P4C_TINFO_LOGICAL_OR;
+const p4c_token_info_t P4C_TINFO_LOGICAL_NOT;
+const p4c_token_info_t P4C_TINFO_BINARY_AND;
+const p4c_token_info_t P4C_TINFO_BINARY_OR;
+const p4c_token_info_t P4C_TINFO_BINARY_XOR;
+const p4c_token_info_t P4C_TINFO_BINARY_NOT;
+const p4c_token_info_t P4C_TINFO_ASSIGN;
+const p4c_token_info_t P4C_TINFO_SHL;
+const p4c_token_info_t P4C_TINFO_SHR;
+const p4c_token_info_t P4C_TINFO_INC;
+const p4c_token_info_t P4C_TINFO_DEC;
+const p4c_token_info_t P4C_TINFO_MEMBER;
+
+const p4c_token_info_t P4C_TINFO_OPEN_BRACES;
+const p4c_token_info_t P4C_TINFO_CLOSE_BRACES;
+const p4c_token_info_t P4C_TINFO_OPEN_BRACKETS;
+const p4c_token_info_t P4C_TINFO_CLOSE_BRACKETS;
+const p4c_token_info_t P4C_TINFO_OPEN_PARENTHESIS;
+const p4c_token_info_t P4C_TINFO_CLOSE_PARENTHESIS;
+const p4c_token_info_t P4C_TINFO_SEMICOLON;
+const p4c_token_info_t P4C_TINFO_COLON;
+const p4c_token_info_t P4C_TINFO_COMMA;
+const p4c_token_info_t P4C_TINFO_ARROW;

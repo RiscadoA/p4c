@@ -3,28 +3,34 @@ program ::= declaration*
 declaration ::= function-definition
               | variable-declaration
 
-function-definition ::= "fn" identifier "(" { function-argument ( "," function-argument )* } ")" "->" type statement-block
+function-definition ::= "fn" identifier "(" { function-argument ( "," function-argument )* } ")" "->" type compound-statement
 
 variable-declaration ::= "let" identifier ":" type "=" expression ";"
 
-statement-block ::= "{" statement* "}
+compound-statement ::= "{" statement* "}
 
-statement ::= statement-block
+statement ::= compound-statement
             | declaration
             | expression ";"
             | "return" expression ";"
+            | "while" expression compound-statement
+            | "if" expression compound-statement { "else" compound-statement }
 
 expression ::= "(" expression ")"
              | expression binary-operator expression
              | unary-operator expression
-             | identifier "(" { expression ( "," expression )* } ")"
+             | call
+             | int-literal
 
-binary-operator ::= "=" | "+" | "-" | "<<" | ">>" | "&" | "|" | "^"
+binary-operator ::= "=" | "+" | "-" | "<<" | ">>" | "&" | "|" | "^" | "."
 unary-operator ::= "+" | "-" | "~" | "++" | "--"
+
+call ::= identifier "(" { expression ( "," expression )* } ")"
 
 type ::= "void"
        | "u16"
        | "i16"
+	   | "&" type
 
 letter ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z"
 
@@ -32,4 +38,4 @@ digit ::= "0" | "1" | ... | "9"
 
 identifier ::= letter ( letter | digit | "_" )+
 
-integer_literal ::= digit+ { "b" | "o" | "d" | "h" }
+int-literal ::= digit+ { "b" | "o" | "d" | "h" }
