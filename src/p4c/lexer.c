@@ -33,12 +33,12 @@ const p4c_token_info_t P4C_TINFO_BINARY_AND = { P4C_TOKEN_BINARY_AND, P4C_FALSE,
 const p4c_token_info_t P4C_TINFO_BINARY_OR = { P4C_TOKEN_BINARY_OR, P4C_FALSE, P4C_FALSE, P4C_TRUE, "|" };
 const p4c_token_info_t P4C_TINFO_BINARY_XOR = { P4C_TOKEN_BINARY_XOR, P4C_FALSE, P4C_FALSE, P4C_TRUE, "^" };
 const p4c_token_info_t P4C_TINFO_BINARY_NOT = { P4C_TOKEN_BINARY_NOT, P4C_FALSE, P4C_FALSE, P4C_TRUE, "~" };
-const p4c_token_info_t P4C_TINFO_ASSIGN = { P4C_TOKEN_ASSIGN, P4C_FALSE, P4C_FALSE, P4C_TRUE, "==" };
+const p4c_token_info_t P4C_TINFO_ASSIGN = { P4C_TOKEN_ASSIGN, P4C_FALSE, P4C_FALSE, P4C_TRUE, "=" };
 const p4c_token_info_t P4C_TINFO_SHL = { P4C_TOKEN_SHL, P4C_FALSE, P4C_FALSE, P4C_TRUE, "<<" };
 const p4c_token_info_t P4C_TINFO_SHR = { P4C_TOKEN_SHR, P4C_FALSE, P4C_FALSE, P4C_TRUE, ">>" };
 const p4c_token_info_t P4C_TINFO_INC = { P4C_TOKEN_SHL, P4C_FALSE, P4C_FALSE, P4C_TRUE, "++" };
 const p4c_token_info_t P4C_TINFO_DEC = { P4C_TOKEN_SHR, P4C_FALSE, P4C_FALSE, P4C_TRUE, "--" };
-const p4c_token_info_t P4C_TINFO_MEMBER = { P4C_TOKEN_SHR, P4C_FALSE, P4C_FALSE, P4C_TRUE, "." };
+const p4c_token_info_t P4C_TINFO_MEMBER = { P4C_TOKEN_MEMBER, P4C_FALSE, P4C_FALSE, P4C_TRUE, "member-access" };
 
 const p4c_token_info_t P4C_TINFO_OPEN_BRACES = { P4C_TOKEN_OPEN_BRACES, P4C_FALSE, P4C_TRUE, P4C_FALSE, "{" };
 const p4c_token_info_t P4C_TINFO_CLOSE_BRACES = { P4C_TOKEN_CLOSE_BRACES, P4C_FALSE, P4C_TRUE, P4C_FALSE, "}" };
@@ -227,10 +227,10 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 
 void p4c_print_token(const p4c_token_t* token) {
 	if (token->attribute_sz > 0) {
-		fprintf(stdout, "<%s>(%.*s)", token->info->name, token->attribute_sz, token->attribute);
+		fprintf(stdout, "'%s'(%.*s)", token->info->name, token->attribute_sz, token->attribute);
 	}
 	else {
-		fprintf(stdout, "<%s>", token->info->name);
+		fprintf(stdout, "'%s'", token->info->name);
 	}
 }
 

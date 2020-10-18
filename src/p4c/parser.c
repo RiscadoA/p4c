@@ -201,7 +201,6 @@ static p4c_node_t* p4c_parse_operator5(p4c_parser_state_t* state) {
 	if (tok != NULL) {
 		p4c_node_t* op = p4c_get_node(state);
 		op->info = tok->info;
-		p4c_next_token(state);
 
 		// Parse term
 		p4c_add_to_node(op, p4c_parse_operator5(state));
@@ -253,8 +252,8 @@ static p4c_node_t* p4c_parse_operator4(p4c_parser_state_t* state) {
 	for (;;) {
 		const p4c_token_t* tok = p4c_peek_token(state);
 		if (tok == NULL || (
-			tok->info->type != P4C_TOKEN_ADD &&
-			tok->info->type != P4C_TOKEN_SUBTRACT)) {
+			tok->info->type != P4C_TOKEN_SHL &&
+			tok->info->type != P4C_TOKEN_SHR)) {
 			break;
 		}
 
@@ -289,8 +288,8 @@ static p4c_node_t* p4c_parse_operator3(p4c_parser_state_t* state) {
 	for (;;) {
 		const p4c_token_t* tok = p4c_peek_token(state);
 		if (tok == NULL || (
-			tok->info->type != P4C_TOKEN_SHL &&
-			tok->info->type != P4C_TOKEN_SHR)) {
+			tok->info->type != P4C_TOKEN_ADD &&
+			tok->info->type != P4C_TOKEN_SUBTRACT)) {
 			break;
 		}
 
@@ -421,6 +420,33 @@ static p4c_node_t* p4c_parse_expression(p4c_parser_state_t* state) {
 	return term1;
 }
 
+static p4c_node_t* p4c_parse_let(p4c_parser_state_t* state) {
+	if (p4c_accept_token(state, &P4C_TINFO_LET) == NULL) {
+		return NULL;
+	}
+	
+	p4c_node_t* out_node = p4c_get_node(state);
+	out_node->info = &P4C_TINFO_LET;
+
+	const p4c_token_t* tok = p4c_expect_token(state, &P4C_TINFO_IDENTIFIER);
+	out_node->attribute = tok->attribute;
+	out_node->attribute_sz = tok->attribute_sz;
+
+	p4c_expect_token(state, &P4C_TINFO_COLON);
+	tok = p4c_expect_type(state);
+	p4c_node_t* type = p4c_get_node(state);
+	type->info = tok->info;
+	p4c_add_to_node(out_node, type);
+
+	if (p4c_accept_token(state, &P4C_TINFO_ASSIGN) != NULL) {
+		p4c_add_to_node(out_node, p4c_parse_expression(state));
+	}
+
+	p4c_expect_token(state, &P4C_TINFO_SEMICOLON);
+
+	return out_node;
+}
+
 static p4c_node_t* p4c_parse_statement(p4c_parser_state_t* state);
 
 static p4c_node_t* p4c_parse_compound_statement(p4c_parser_state_t* state) {
@@ -490,7 +516,7 @@ static p4c_node_t* p4c_parse_statement(p4c_parser_state_t* state) {
 		return out_node;
 	}
 
-	return out_node;
+	return p4c_parse_let(state);
 }
 
 static p4c_node_t* p4c_parse_function(p4c_parser_state_t* state) {
@@ -566,7 +592,7 @@ static p4c_node_t* p4c_parse_program(p4c_parser_state_t* state) {
 		}
 		// Variable declaration
 		else if (tok->info->type == P4C_TOKEN_LET) {
-			//p4c_add_to_node(root, p4c_parse_function(state));
+			p4c_add_to_node(root, p4c_parse_let(state));
 		}
 	}
 
@@ -584,10 +610,10 @@ void p4c_print_node(const p4c_node_t* node, int indentation) {
 	}
 
 	if (node->attribute_sz > 0) {
-		fprintf(stdout, "<%s>(%.*s)\n", name, node->attribute_sz, node->attribute);
+		fprintf(stdout, "'%s'(%.*s)\n", name, node->attribute_sz, node->attribute);
 	}
 	else {
-		fprintf(stdout, "<%s>\n", name);
+		fprintf(stdout, "'%s'\n", name);
 	}
 
 	const p4c_node_t* c = node->first;
