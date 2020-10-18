@@ -154,6 +154,9 @@ static p4c_node_t* p4c_parse_operator_last(p4c_parser_state_t* state) {
 
 				p4c_expect_token(state, &P4C_TINFO_CLOSE_PARENTHESIS);
 			}
+
+			p4c_add_to_node(out_node, params);
+			return out_node;
 		}
 		// <identifier>
 		else {
@@ -363,7 +366,11 @@ static p4c_node_t* p4c_parse_operator1(p4c_parser_state_t* state) {
 	p4c_node_t* term2 = NULL;
 	for (;;) {
 		const p4c_token_t* tok = p4c_peek_token(state);
-		if (tok == NULL || (tok->info->type != P4C_TOKEN_LOGICAL_AND && tok->info->type != P4C_TOKEN_LOGICAL_OR)) {
+		if (tok == NULL || (
+			tok->info->type != P4C_TOKEN_BINARY_AND &&
+			tok->info->type != P4C_TOKEN_BINARY_OR &&
+			tok->info->type != P4C_TOKEN_LOGICAL_AND &&
+			tok->info->type != P4C_TOKEN_LOGICAL_OR)) {
 			break;
 		}
 
@@ -498,6 +505,73 @@ static p4c_node_t* p4c_parse_expression_statement(p4c_parser_state_t* state) {
 	return out_node;
 }
 
+static p4c_node_t* p4c_parse_if(p4c_parser_state_t* state) {
+	if (!p4c_accept_token(state, &P4C_TINFO_IF)) {
+		return NULL;
+	}
+
+	p4c_node_t* out_node = p4c_get_node(state);
+	out_node->info = &P4C_TINFO_IF;
+
+	// Parse condition
+	p4c_node_t* condition = p4c_parse_expression(state);
+	if (condition == NULL) {
+		fprintf(stderr, "Parser stage failed:\nIf missing condition\n");
+		exit(4);
+	}
+	p4c_add_to_node(out_node, condition);
+
+	// Parse if / else body
+	p4c_node_t* if_body = p4c_parse_compound_statement(state);
+	if (if_body == NULL) {
+		fprintf(stderr, "Parser stage failed:\nIf missing body\n");
+		exit(4);
+	}
+	p4c_add_to_node(out_node, if_body);
+
+	if (p4c_accept_token(state, &P4C_TINFO_ELSE) != NULL) {
+		p4c_node_t* else_body = p4c_parse_if(state);
+		if (else_body == NULL) {
+			else_body = p4c_parse_compound_statement(state);
+		}
+		if (else_body == NULL) {
+			fprintf(stderr, "Parser stage failed:\nElse missing body\n");
+			exit(4);
+		}
+
+		p4c_add_to_node(out_node, else_body);
+	}
+
+	return out_node;
+}
+
+static p4c_node_t* p4c_parse_while(p4c_parser_state_t* state) {
+	if (!p4c_accept_token(state, &P4C_TINFO_WHILE)) {
+		return NULL;
+	}
+
+	p4c_node_t* out_node = p4c_get_node(state);
+	out_node->info = &P4C_TINFO_WHILE;
+
+	// Parse condition
+	p4c_node_t* condition = p4c_parse_expression(state);
+	if (condition == NULL) {
+		fprintf(stderr, "Parser stage failed:\nIf missing condition\n");
+		exit(4);
+	}
+	p4c_add_to_node(out_node, condition);
+
+	// Parse while body
+	p4c_node_t* while_body = p4c_parse_compound_statement(state);
+	if (while_body == NULL) {
+		fprintf(stderr, "Parser stage failed:\nWhile missing body\n");
+		exit(4);
+	}
+	p4c_add_to_node(out_node, while_body);
+
+	return out_node;
+}
+
 static p4c_node_t* p4c_parse_statement(p4c_parser_state_t* state) {
 	p4c_node_t* out_node;
 
@@ -512,6 +586,16 @@ static p4c_node_t* p4c_parse_statement(p4c_parser_state_t* state) {
 	}
 
 	out_node = p4c_parse_expression_statement(state);
+	if (out_node != NULL) {
+		return out_node;
+	}
+
+	out_node = p4c_parse_if(state);
+	if (out_node != NULL) {
+		return out_node;
+	}
+
+	out_node = p4c_parse_while(state);
 	if (out_node != NULL) {
 		return out_node;
 	}

@@ -11,9 +11,9 @@ const p4c_token_info_t P4C_TINFO_INT_LITERAL = { P4C_TOKEN_INT_LITERAL, P4C_FALS
 const p4c_token_info_t P4C_TINFO_IDENTIFIER = { P4C_TOKEN_IDENTIFIER, P4C_FALSE, P4C_FALSE, P4C_FALSE, "identifier" };
 
 const p4c_token_info_t P4C_TINFO_FUNCTION = { P4C_TOKEN_FUNCTION, P4C_FALSE, P4C_FALSE, P4C_FALSE, "function" };
-const p4c_token_info_t P4C_TINFO_IF = { P4C_TOKEN_FUNCTION, P4C_FALSE, P4C_FALSE, P4C_FALSE, "if" };
-const p4c_token_info_t P4C_TINFO_ELSE = { P4C_TOKEN_FUNCTION, P4C_FALSE, P4C_FALSE, P4C_FALSE, "else" };
-const p4c_token_info_t P4C_TINFO_WHILE = { P4C_TOKEN_FUNCTION, P4C_FALSE, P4C_FALSE, P4C_FALSE, "while" };
+const p4c_token_info_t P4C_TINFO_IF = { P4C_TOKEN_IF, P4C_FALSE, P4C_FALSE, P4C_FALSE, "if" };
+const p4c_token_info_t P4C_TINFO_ELSE = { P4C_TOKEN_ELSE, P4C_FALSE, P4C_FALSE, P4C_FALSE, "else" };
+const p4c_token_info_t P4C_TINFO_WHILE = { P4C_TOKEN_WHILE, P4C_FALSE, P4C_FALSE, P4C_FALSE, "while" };
 const p4c_token_info_t P4C_TINFO_FOR = { P4C_TOKEN_FOR, P4C_FALSE, P4C_FALSE, P4C_FALSE, "for" };
 const p4c_token_info_t P4C_TINFO_RETURN = { P4C_TOKEN_RETURN, P4C_FALSE, P4C_FALSE, P4C_FALSE, "return" };
 const p4c_token_info_t P4C_TINFO_LET = { P4C_TOKEN_LET, P4C_FALSE, P4C_FALSE, P4C_FALSE, "let" };
@@ -161,8 +161,8 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 	SINGLE_CHAR_TOK('>', P4C_TINFO_GREATER)
 	SINGLE_CHAR_TOK('<', P4C_TINFO_LESS)
 	SINGLE_CHAR_TOK('!', P4C_TINFO_LOGICAL_NOT)
-	SINGLE_CHAR_TOK("&", P4C_TINFO_BINARY_AND)
-	SINGLE_CHAR_TOK("|", P4C_TINFO_BINARY_OR)
+	SINGLE_CHAR_TOK('&', P4C_TINFO_BINARY_AND)
+	SINGLE_CHAR_TOK('|', P4C_TINFO_BINARY_OR)
 	SINGLE_CHAR_TOK('^', P4C_TINFO_BINARY_XOR)
 	SINGLE_CHAR_TOK('~', P4C_TINFO_BINARY_NOT)
 	SINGLE_CHAR_TOK('=', P4C_TINFO_ASSIGN)
@@ -203,7 +203,7 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 		while (1) {
 			++attr_it;
 			if (p4c_is_whitespace(state->it[attr_it]) ||
-				(!p4c_is_numeric(state->it[attr_it]) && !p4c_is_alpha(state->it[attr_it]) && *state->it != '_')) {
+				(!p4c_is_numeric(state->it[attr_it]) && !p4c_is_alpha(state->it[attr_it]) && state->it[attr_it] != '_')) {
 				tok.attribute = state->it;
 				tok.attribute_sz = attr_it;
 				tok.info = &P4C_TINFO_IDENTIFIER;
@@ -211,7 +211,7 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 				state->it += attr_it;
 				return P4C_TRUE;
 			}
-			else if (!p4c_is_alpha(state->it[attr_it]) && !p4c_is_numeric(state->it[attr_it]) && *state->it != '_')
+			else if (!p4c_is_alpha(state->it[attr_it]) && !p4c_is_numeric(state->it[attr_it]) && state->it[attr_it] != '_')
 				break;
 		}
 	}
