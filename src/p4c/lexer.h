@@ -69,6 +69,7 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 #define P4C_TOKEN_COLON					0x57
 #define P4C_TOKEN_COMMA					0x58
 #define P4C_TOKEN_ARROW					0x59
+#define P4C_TOKEN_POINTER				0x5A
 
 const p4c_token_info_t P4C_TINFO_VOID;
 const p4c_token_info_t P4C_TINFO_I16;
@@ -117,3 +118,4 @@ const p4c_token_info_t P4C_TINFO_SEMICOLON;
 const p4c_token_info_t P4C_TINFO_COLON;
 const p4c_token_info_t P4C_TINFO_COMMA;
 const p4c_token_info_t P4C_TINFO_ARROW;
+const p4c_token_info_t P4C_TINFO_POINTER;

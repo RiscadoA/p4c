@@ -3,17 +3,20 @@
 
 #include <p4c/lexer.h>
 #include <p4c/parser.h>
+#include <p4c/generator.h>
+#include <p4c/output.h>
 
 const char* HELP_MESSAGE = "Compiles one or more .p4c files into one P4 assembly file.\n"
                            "Usage:\n"
-                           "\tp4c [-o out_asm] [-t out_tok] [-a out_ast] in_file...\n";
+                           "\tp4c [-o out_asm] [-t out_tok] [-a out_ast] [-d] in_file...\n";
 
 int main(int argc, char** argv) {
     int in_file_count = 0;
     const char** in_files;
-    const char* out_file = "out.as";
+    const char* out_file = NULL;
     const char* out_tok = NULL;
     const char* out_ast = NULL;
+    p4c_bool_t debug_mode = P4C_FALSE;
 
     if (argc > 1 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
         fprintf(stdout, "%s", HELP_MESSAGE);
@@ -45,6 +48,9 @@ int main(int argc, char** argv) {
 
             out_ast = argv[++i];
         }
+        else if (strcmp(argv[i], "-d") == 0) {
+            debug_mode = P4C_TRUE;
+        }
         else {
             in_file_count += 1;
         }
@@ -56,7 +62,7 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "-a") == 0) {
             ++i;
         }
-        else {
+        else if (strcmp(argv[i], "-d") != 0) {
             in_files[j++] = argv[i];
         }
     }
@@ -110,7 +116,7 @@ int main(int argc, char** argv) {
         }
         fclose(f);
     }
-    else {
+    else if (debug_mode) {
         fprintf(stdout, "--- Tokens ---\n");
         for (int i = 0; i < token_count; ++i) {
             p4c_print_token(stdout, &tokens[i]);
@@ -132,13 +138,37 @@ int main(int argc, char** argv) {
         p4c_print_node(f, ast, 0);
         fclose(f);
     }
-    else {
+    else if (debug_mode) {
         fprintf(stdout, "--- AST ---\n");
         p4c_print_node(stdout, ast, 0);
     }
 
-    // Clean-up
+    // Run generator
+    p4c_instruction_t* instructions = (p4c_instruction_t*)malloc(65536 * sizeof(p4c_instruction_t));
+    int instruction_count = p4c_run_generator(ast, instructions, 65536);
 
+    // Output instructions
+    char* output = (char*)malloc(65536 * sizeof(char));
+    p4c_build_output(instructions, instruction_count, output, 65536);
+
+    if (out_file != NULL) {
+        FILE* f = fopen(out_file, "wb");
+        if (f == NULL) {
+            fprintf(stderr, "Couldn't write to file %s\n", out_file);
+            exit(2);
+        }
+
+        fprintf(f, "%s", output);
+        fclose(f);
+    }
+    else {
+        if (debug_mode) {
+            fprintf(stdout, "--- Output ---\n");
+        }
+        fprintf(stdout, "%s", output);
+    }
+
+    // Clean-up
     free(ast);
     free(tokens);
 

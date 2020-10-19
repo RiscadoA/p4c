@@ -49,6 +49,7 @@ const p4c_token_info_t P4C_TINFO_SEMICOLON = { P4C_TOKEN_SEMICOLON, P4C_FALSE, P
 const p4c_token_info_t P4C_TINFO_COLON = { P4C_TOKEN_COLON, P4C_FALSE, P4C_TRUE, P4C_FALSE, ":" };
 const p4c_token_info_t P4C_TINFO_COMMA = { P4C_TOKEN_COMMA, P4C_FALSE, P4C_TRUE, P4C_FALSE, "," };
 const p4c_token_info_t P4C_TINFO_ARROW = { P4C_TOKEN_ARROW, P4C_FALSE, P4C_TRUE, P4C_FALSE, "->" };
+const p4c_token_info_t P4C_TINFO_POINTER = { P4C_TOKEN_ARROW, P4C_FALSE, P4C_TRUE, P4C_TRUE, "*" };
 
 typedef struct {
 	const char* it;
@@ -175,10 +176,12 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 	SINGLE_CHAR_TOK(':', P4C_TINFO_COLON)
 	SINGLE_CHAR_TOK(',', P4C_TINFO_COMMA)
 	SINGLE_CHAR_TOK('.', P4C_TINFO_MEMBER)
+	SINGLE_CHAR_TOK('*', P4C_TINFO_POINTER)
 
 	// Integer literal
 	if (p4c_is_numeric(*state->it)) {
 		attr_it = 0;
+		p4c_bool_t must_end = P4C_FALSE;
 
 		while (1) {
 			++attr_it;
@@ -190,8 +193,15 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 				state->it += attr_it;
 				return P4C_TRUE;
 			}
-			else if (!p4c_is_numeric(state->it[attr_it]))
+			else if (state->it[attr_it] == 'h' || state->it[attr_it] == 'd' || state->it[attr_it] == 'b') {
+				must_end = P4C_TRUE;
+			}
+			else if (!p4c_is_numeric(state->it[attr_it])) {
 				break;
+			}
+			else if (must_end) {
+				break;
+			}
 		}
 	}
 
@@ -210,8 +220,9 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 				state->it += attr_it;
 				return P4C_TRUE;
 			}
-			else if (!p4c_is_alpha(state->it[attr_it]) && !p4c_is_numeric(state->it[attr_it]) && state->it[attr_it] != '_')
+			else if (!p4c_is_alpha(state->it[attr_it]) && !p4c_is_numeric(state->it[attr_it]) && state->it[attr_it] != '_') {
 				break;
+			}
 		}
 	}
 

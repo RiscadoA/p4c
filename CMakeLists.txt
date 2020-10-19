@@ -5,6 +5,8 @@ set(SOURCES
     "src/p4c/entry.c"
     "src/p4c/lexer.c"
     "src/p4c/parser.c"
+    "src/p4c/generator.c"
+    "src/p4c/output.c"
 )
 
 add_executable(p4c ${SOURCES})

@@ -65,26 +65,24 @@ static const p4c_token_t* p4c_expect_token(p4c_parser_state_t* state, const p4c_
 	return state->it++;
 }
 
-static const p4c_token_t* p4c_expect_type(p4c_parser_state_t* state) {
-	if (state->it > state->last_token) {
-		fprintf(stderr, "Parser stage failed:\nUnexpected end of file, expected type\n");
-		exit(4);
-	}
-
-	if (!state->it->info->is_type) {
-		fprintf(stderr, "Parser stage failed:\nUnexpected token '%s', expected type\n", state->it->info->name);
-		exit(4);
-	}
-
-	return state->it++;
-}
-
 static const p4c_token_t* p4c_accept_token(p4c_parser_state_t* state, const p4c_token_info_t* info) {
 	if (state->it > state->last_token) {
 		return NULL;
 	}
 
 	if (state->it->info->type != info->type) {
+		return NULL;
+	}
+
+	return state->it++;
+}
+
+static const p4c_token_t* p4c_accept_type(p4c_parser_state_t* state) {
+	if (state->it > state->last_token) {
+		return NULL;
+	}
+
+	if (!state->it->info->is_type) {
 		return NULL;
 	}
 
@@ -106,6 +104,29 @@ static void p4c_next_token(p4c_parser_state_t* state) {
 	}
 
 	++state->it;
+}
+
+static p4c_node_t* p4c_parse_type(p4c_parser_state_t* state) {
+	if (p4c_accept_token(state, &P4C_TINFO_POINTER) != NULL) {
+		p4c_node_t* out_node = p4c_get_node(state);
+		out_node->info = &P4C_TINFO_POINTER;
+		p4c_node_t* sub_type = p4c_parse_type(state);
+		if (sub_type == NULL) {
+			fprintf(stderr, "Parser stage failed:\nExpected type token after *\n");
+			exit(4);
+		}
+		p4c_add_to_node(out_node, sub_type);
+		return out_node;
+	}
+	
+	const p4c_token_t* tok = p4c_accept_type(state);
+	if (tok == NULL) {
+		return NULL;
+	}
+
+	p4c_node_t* out_node = p4c_get_node(state);
+	out_node->info = tok->info;
+	return out_node;
 }
 
 static p4c_node_t* p4c_parse_expression(p4c_parser_state_t* state);
@@ -440,9 +461,12 @@ static p4c_node_t* p4c_parse_let(p4c_parser_state_t* state) {
 	out_node->attribute_sz = tok->attribute_sz;
 
 	p4c_expect_token(state, &P4C_TINFO_COLON);
-	tok = p4c_expect_type(state);
-	p4c_node_t* type = p4c_get_node(state);
-	type->info = tok->info;
+
+	p4c_node_t* type = p4c_parse_type(state);
+	if (type == NULL) {
+		fprintf(stderr, "Parser stage failed:\nCoudln't parse type in let statement\n");
+		exit(4);
+	}
 	p4c_add_to_node(out_node, type);
 
 	if (p4c_accept_token(state, &P4C_TINFO_ASSIGN) != NULL) {
@@ -629,10 +653,12 @@ static p4c_node_t* p4c_parse_function(p4c_parser_state_t* state) {
 		param->attribute_sz = tok->attribute_sz;
 		p4c_expect_token(state, &P4C_TINFO_COLON);
 		
-		tok = p4c_expect_type(state);
-		p4c_node_t* type_node = p4c_get_node(state);
-		type_node->info = tok->info;
-		p4c_add_to_node(param, type_node);
+		p4c_node_t* type = p4c_parse_type(state);
+		if (type == NULL) {
+			fprintf(stderr, "Parser stage failed:\nCoudln't parse type in function param\n");
+			exit(4);
+		}
+		p4c_add_to_node(param, type);
 		p4c_add_to_node(params, param);
 
 		if (p4c_accept_token(state, &P4C_TINFO_COMMA) == NULL) {
@@ -644,10 +670,12 @@ static p4c_node_t* p4c_parse_function(p4c_parser_state_t* state) {
 	p4c_add_to_node(out_node, params);
 
 	// Parse function return type
-	p4c_node_t* type = p4c_get_node(state);
 	p4c_expect_token(state, &P4C_TINFO_ARROW);
-	tok = p4c_expect_type(state);
-	type->info = tok->info;
+	p4c_node_t* type = p4c_parse_type(state);
+	if (type == NULL) {
+		fprintf(stderr, "Parser stage failed:\nCoudln't parse type in function return type\n");
+		exit(4);
+	}
 	p4c_add_to_node(out_node, type);
 
 	// Parse function body
