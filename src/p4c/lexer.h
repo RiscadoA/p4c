@@ -36,6 +36,7 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 #define P4C_TOKEN_FOR					0x24
 #define P4C_TOKEN_RETURN				0x25
 #define P4C_TOKEN_LET					0x26
+#define P4C_TOKEN_AS					0x27
 
 #define P4C_TOKEN_ADD					0x30
 #define P4C_TOKEN_SUBTRACT				0x31
@@ -53,8 +54,6 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 #define P4C_TOKEN_BINARY_XOR			0x3D
 #define P4C_TOKEN_BINARY_NOT			0x3E
 #define P4C_TOKEN_ASSIGN				0x3F
-#define P4C_TOKEN_SHL					0x40
-#define P4C_TOKEN_SHR					0x41
 #define P4C_TOKEN_INC					0x42
 #define P4C_TOKEN_DEC					0x43
 #define P4C_TOKEN_MEMBER				0x44
@@ -85,6 +84,7 @@ const p4c_token_info_t P4C_TINFO_WHILE;
 const p4c_token_info_t P4C_TINFO_FOR;
 const p4c_token_info_t P4C_TINFO_RETURN;
 const p4c_token_info_t P4C_TINFO_LET;
+const p4c_token_info_t P4C_TINFO_AS;
 
 const p4c_token_info_t P4C_TINFO_ADD;
 const p4c_token_info_t P4C_TINFO_SUBTRACT;
@@ -102,8 +102,6 @@ const p4c_token_info_t P4C_TINFO_BINARY_OR;
 const p4c_token_info_t P4C_TINFO_BINARY_XOR;
 const p4c_token_info_t P4C_TINFO_BINARY_NOT;
 const p4c_token_info_t P4C_TINFO_ASSIGN;
-const p4c_token_info_t P4C_TINFO_SHL;
-const p4c_token_info_t P4C_TINFO_SHR;
 const p4c_token_info_t P4C_TINFO_INC;
 const p4c_token_info_t P4C_TINFO_DEC;
 const p4c_token_info_t P4C_TINFO_MEMBER;

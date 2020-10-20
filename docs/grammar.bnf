@@ -5,7 +5,7 @@ declaration ::= function-definition
 
 function-definition ::= "fn" identifier "(" { function-argument ( "," function-argument )* } ")" "->" type compound-statement
 
-variable-declaration ::= "let" identifier ":" type "=" expression ";"
+variable-declaration ::= "let" identifier { ":" type } "=" expression ";"
 
 compound-statement ::= "{" statement* "}
 
@@ -23,7 +23,7 @@ expression ::= "(" expression ")"
              | int-literal
 
 binary-operator ::= "=" | "+" | "-" | "<<" | ">>" | "&" | "|" | "^" | "."
-unary-operator ::= "+" | "-" | "~" | "++" | "--"
+unary-operator ::= "+" | "-" | "~" | "++" | "--" | "*"
 
 call ::= identifier "(" { expression ( "," expression )* } ")"
 

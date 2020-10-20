@@ -6,6 +6,8 @@
 const p4c_token_info_t P4C_TINFO_PARAMS = { P4C_TOKEN_PARAMS, P4C_FALSE, P4C_FALSE, P4C_FALSE, "params" };
 const p4c_token_info_t P4C_TINFO_COMPOUND_STATEMENT = { P4C_TOKEN_COMPOUND_STATEMENT, P4C_FALSE, P4C_FALSE, P4C_FALSE, "compound-statement" };
 const p4c_token_info_t P4C_TINFO_CALL = { P4C_TOKEN_CALL, P4C_FALSE, P4C_FALSE, P4C_FALSE, "call" };
+const p4c_token_info_t P4C_TINFO_REFERENCE = { P4C_TOKEN_REFERENCE, P4C_FALSE, P4C_FALSE, P4C_TRUE, "reference" };
+const p4c_token_info_t P4C_TINFO_DEREFERENCE = { P4C_TOKEN_DEREFERENCE, P4C_FALSE, P4C_FALSE, P4C_TRUE, "dereference" };
 
 typedef struct {
 	const p4c_token_t* it;
@@ -146,18 +148,12 @@ static p4c_node_t* p4c_parse_operator_last(p4c_parser_state_t* state) {
 	if (tok != NULL) {
 		// <call>
 		if (p4c_accept_token(state, &P4C_TINFO_OPEN_PARENTHESIS) != NULL) {
-			p4c_node_t* identifier = p4c_get_node(state);
-			identifier->info = tok->info;
-			identifier->attribute = tok->attribute;
-			identifier->attribute_sz = tok->attribute_sz;
-
 			out_node = p4c_get_node(state);
 			out_node->info = &P4C_TINFO_CALL;
-			p4c_add_to_node(out_node, identifier);
+			out_node->attribute = tok->attribute;
+			out_node->attribute_sz = tok->attribute_sz;
 
 			// Parse params
-			p4c_node_t* params = p4c_get_node(state);
-			params->info = &P4C_TINFO_PARAMS;
 			if (p4c_accept_token(state, &P4C_TINFO_CLOSE_PARENTHESIS) == NULL) {
 				for (int i = 0;; ++i) {
 					p4c_node_t* param = p4c_parse_expression(state);
@@ -166,7 +162,7 @@ static p4c_node_t* p4c_parse_operator_last(p4c_parser_state_t* state) {
 						exit(4);
 					}
 
-					p4c_add_to_node(params, param);
+					p4c_add_to_node(out_node, param);
 
 					if (p4c_accept_token(state, &P4C_TINFO_COMMA) == NULL) {
 						break;
@@ -176,7 +172,6 @@ static p4c_node_t* p4c_parse_operator_last(p4c_parser_state_t* state) {
 				p4c_expect_token(state, &P4C_TINFO_CLOSE_PARENTHESIS);
 			}
 
-			p4c_add_to_node(out_node, params);
 			return out_node;
 		}
 		// <identifier>
@@ -222,9 +217,21 @@ static p4c_node_t* p4c_parse_operator5(p4c_parser_state_t* state) {
 	if (tok == NULL) {
 		tok = p4c_accept_token(state, &P4C_TINFO_DEC);
 	}
+	if (tok == NULL) {
+		tok = p4c_accept_token(state, &P4C_TINFO_BINARY_AND);
+	}
+	if (tok == NULL) {
+		tok = p4c_accept_token(state, &P4C_TINFO_POINTER);
+	}
 	if (tok != NULL) {
 		p4c_node_t* op = p4c_get_node(state);
 		op->info = tok->info;
+		if (op->info == &P4C_TINFO_BINARY_AND) {
+			op->info = &P4C_TINFO_REFERENCE;
+		}
+		else if (op->info == &P4C_TINFO_POINTER) {
+			op->info = &P4C_TINFO_DEREFERENCE;
+		}
 
 		// Parse term
 		p4c_add_to_node(op, p4c_parse_operator5(state));
@@ -271,30 +278,18 @@ static p4c_node_t* p4c_parse_operator4(p4c_parser_state_t* state) {
 		return NULL;
 	}
 
-	// Get next terms
-	p4c_node_t* term2 = NULL;
-	for (;;) {
-		const p4c_token_t* tok = p4c_peek_token(state);
-		if (tok == NULL || (
-			tok->info->type != P4C_TOKEN_SHL &&
-			tok->info->type != P4C_TOKEN_SHR)) {
-			break;
-		}
-
-		p4c_node_t* op = p4c_get_node(state);
-		op->info = tok->info;
-		p4c_next_token(state);
-
-		// Parse second term
-		term2 = p4c_parse_operator5(state);
-		if (term2 == NULL) {
-			fprintf(stderr, "Parser stage failed:\nFailed to parse '%s' operator second term\n", op->info->name);
+	if (p4c_accept_token(state, &P4C_TINFO_AS) != NULL) {
+		p4c_node_t* type = p4c_parse_type(state);
+		if (type == NULL) {
+			fprintf(stderr, "Parser stage failed:\nExpected type after 'as'\n");
 			exit(4);
 		}
 
+		p4c_node_t* op = p4c_get_node(state);
+		op->info = &P4C_TINFO_AS;
 		p4c_add_to_node(op, term1);
-		p4c_add_to_node(op, term2);
-		term1 = op;
+		p4c_add_to_node(op, type);
+		return op;
 	}
 
 	return term1;
@@ -460,16 +455,23 @@ static p4c_node_t* p4c_parse_let(p4c_parser_state_t* state) {
 	out_node->attribute = tok->attribute;
 	out_node->attribute_sz = tok->attribute_sz;
 
-	p4c_expect_token(state, &P4C_TINFO_COLON);
+	if (p4c_accept_token(state, &P4C_TINFO_COLON) != NULL) {
+		p4c_node_t* type = p4c_parse_type(state);
+		if (type == NULL) {
+			fprintf(stderr, "Parser stage failed:\nCoudln't parse type in let statement\n");
+			exit(4);
+		}
 
-	p4c_node_t* type = p4c_parse_type(state);
-	if (type == NULL) {
-		fprintf(stderr, "Parser stage failed:\nCoudln't parse type in let statement\n");
-		exit(4);
+		p4c_node_t* op = p4c_get_node(state);
+		op->info = &P4C_TINFO_AS;
+
+		p4c_expect_token(state, &P4C_TINFO_ASSIGN);
+		p4c_add_to_node(op, p4c_parse_expression(state));
+		p4c_add_to_node(op, type);
+		p4c_add_to_node(out_node, op);
 	}
-	p4c_add_to_node(out_node, type);
-
-	if (p4c_accept_token(state, &P4C_TINFO_ASSIGN) != NULL) {
+	else {
+		p4c_expect_token(state, &P4C_TINFO_ASSIGN);
 		p4c_add_to_node(out_node, p4c_parse_expression(state));
 	}
 
@@ -608,8 +610,8 @@ static p4c_node_t* p4c_parse_statement(p4c_parser_state_t* state) {
 	if (out_node != NULL) {
 		return out_node;
 	}
-
-	out_node = p4c_parse_expression_statement(state);
+	
+	out_node = p4c_parse_let(state);
 	if (out_node != NULL) {
 		return out_node;
 	}
@@ -624,7 +626,7 @@ static p4c_node_t* p4c_parse_statement(p4c_parser_state_t* state) {
 		return out_node;
 	}
 
-	return p4c_parse_let(state);
+	return p4c_parse_expression_statement(state);
 }
 
 static p4c_node_t* p4c_parse_function(p4c_parser_state_t* state) {

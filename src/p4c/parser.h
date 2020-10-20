@@ -22,7 +22,11 @@ p4c_node_t* p4c_run_parser(const p4c_token_t* tokens, int token_count, p4c_node_
 #define P4C_TOKEN_PARAMS				0x60
 #define P4C_TOKEN_COMPOUND_STATEMENT	0x61
 #define P4C_TOKEN_CALL					0x62
+#define P4C_TOKEN_REFERENCE				0x63
+#define P4C_TOKEN_DEREFERENCE			0x64
 
 const p4c_token_info_t P4C_TINFO_PARAMS;
 const p4c_token_info_t P4C_TINFO_COMPOUND_STATEMENT;
 const p4c_token_info_t P4C_TINFO_CALL;
+const p4c_token_info_t P4C_TINFO_REFERENCE;
+const p4c_token_info_t P4C_TINFO_DEREFERENCE;

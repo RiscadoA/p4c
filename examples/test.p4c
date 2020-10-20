@@ -1,9 +1,9 @@
-/*fn fast_mul(x: u16, y: u16) -> u16 {
+fn fast_mul(x: u16, y: u16) -> u16 {
 	if y == 0 {
 		return 0;
 	}
 	else if y & 1 == 0 {
-		return mul(x, y >> 1) << 1;
+		return shl(fast_mul(x, shr(y)));
 	}
 	else {
 		return x + mul(x, y - 1);
@@ -18,13 +18,17 @@ fn dumb_mul(x: u16, y: u16) -> u16 {
 		i = i + 1;
 	}
 	return ans;
-}*/
+}
 
 fn add(x: i16, y: i16) -> i16 {
 	return x + y;
 }
 
 fn main() -> void {
-	let x: u16 = 3;
-	let y: i16 = ~(x + 4) << 2;
+	let x = 3;
+	let y = &x;
+	let z: i16 = ~(*y as i16 + 4);
+	if (x > 0 || x < 0) && &z == y as *i16 {
+		
+	}
 }
