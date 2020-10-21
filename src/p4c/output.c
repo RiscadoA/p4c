@@ -62,6 +62,7 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 
 #define PRINT_REG(reg) do { arg_str[arg_str_i++] = 'R'; arg_str[arg_str_i++] = '0' + reg; } while(0)
 #define PRINT_M_REG(reg) do {\
+	arg_str[arg_str_i++] = 'M';\
 	arg_str[arg_str_i++] = '[';\
 	arg_str[arg_str_i++] = 'R';\
 	arg_str[arg_str_i++] = '0' + reg;\
@@ -154,8 +155,8 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 	case P4C_OP_INT: op_str = "INT     "; PRINT_INT(ins->arg1, ins->arg2); break;
 	
 	case P4C_OP_MOV: op_str = "MOV     "; PRINT_2_REG(); break;
-	case P4C_OP_LOAD: op_str = "LOAD    "; PRINT_REG(ins->arg1); PRINT_SEP(); PRINT_M_REG(ins->arg2, ins->arg3); break;
-	case P4C_OP_STOR: op_str = "STOR    "; PRINT_M_REG(ins->arg1, ins->arg2); PRINT_SEP(); PRINT_REG(ins->arg3); break;
+	case P4C_OP_LOAD: op_str = "LOAD    "; PRINT_REG(ins->arg1); PRINT_SEP(); PRINT_M_REG(ins->arg2); break;
+	case P4C_OP_STOR: op_str = "STOR    "; PRINT_M_REG(ins->arg1); PRINT_SEP(); PRINT_REG(ins->arg2); break;
 	case P4C_OP_MVI: op_str = "MVI     "; PRINT_REG(ins->arg1); PRINT_SEP(); PRINT_INT(ins->arg2, ins->arg3); break;
 	case P4C_OP_MVIH: op_str = "MVIH    "; PRINT_REG(ins->arg1); PRINT_SEP(); PRINT_INT(ins->arg2, ins->arg3); break;
 	case P4C_OP_MVIL: op_str = "MVIL    "; PRINT_REG(ins->arg1); PRINT_SEP(); PRINT_INT(ins->arg2, ins->arg3); break;

@@ -75,6 +75,7 @@ typedef struct {
 	p4c_stack_frame_t* stack_frame;
 
 	int next_label;
+	int stack_frame_depth;
 } p4c_generator_state_t;
 
 static int p4c_put_label(p4c_generator_state_t* state, int label) {
@@ -144,6 +145,7 @@ static void p4c_push_stack_frame(p4c_generator_state_t* state) {
 	frame->first = NULL;
 	frame->size = 0;
 	state->stack_frame = frame;
+	state->stack_frame_depth += 1;
 }
 
 static void p4c_pop_stack_frame(p4c_generator_state_t* state) {
@@ -162,6 +164,8 @@ static void p4c_pop_stack_frame(p4c_generator_state_t* state) {
 	}
 
 	free(frame);
+
+	state->stack_frame_depth -= 1;
 }
 
 p4c_stack_variable_t* p4c_declare_variable(p4c_generator_state_t* state, const char* name, int name_sz, p4c_type_t type) {
@@ -174,12 +178,17 @@ p4c_stack_variable_t* p4c_declare_variable(p4c_generator_state_t* state, const c
 
 	p4c_stack_variable_t* var = (p4c_stack_variable_t*)malloc(sizeof(p4c_stack_variable_t));
 	var->frame = state->stack_frame;
-	var->address = state->stack_frame->size++; // TODO, add other possibles sizes other than 1 word
+	var->address = 0;
 	var->name = name;
 	var->name_sz = name_sz;
 	var->type = type;
+	for (p4c_stack_variable_t* var = state->stack_frame->first; var != NULL; var = var->next) {
+		var->address += 1; // TODO, add other possibles sizes other than 1 word
+	}
 	var->next = state->stack_frame->first;
 	state->stack_frame->first = var;
+	state->stack_frame->size += 1;
+
 	return var;
 }
 
@@ -194,12 +203,6 @@ p4c_stack_variable_t* p4c_find_variable(p4c_generator_state_t* state, const char
 
 	fprintf(stderr, "Generator stage failed:\nCouldn't find variable '%.*s'\n", name_sz, name);
 	exit(5);
-}
-
-static void p4c_gen_function(p4c_generator_state_t* state, const p4c_node_t* func) {
-	state->current_func = func;
-
-	state->current_func = NULL;
 }
 
 static void p4c_analyze_compound_statement(p4c_generator_state_t* state, const p4c_node_t* node, p4c_bool_t push_stack);
@@ -400,7 +403,16 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 }
 
 static void p4c_analyze_return_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
-	p4c_expression_type_t exp_type = p4c_analyze_expression(state, node->first);
+	p4c_expression_type_t exp_type;
+	if (node->first == NULL) {
+		exp_type.value_type.base = &P4C_TINFO_VOID;
+		exp_type.value_type.indirection = 0;
+		exp_type.is_reference = P4C_FALSE;
+	}
+	else {
+		exp_type = p4c_analyze_expression(state, node->first);
+	}
+
 	if (exp_type.value_type.base != state->current_func->return_type.base ||
 		exp_type.value_type.indirection != state->current_func->return_type.indirection) {
 		fprintf(stderr, "Generator stage failed:\nReturn expression type doesn't match the function's return type\n");
@@ -522,6 +534,109 @@ static void p4c_analyze_function(p4c_generator_state_t* state, const p4c_node_t*
 	state->current_func = NULL;
 }
 
+static void p4c_gen_compound_statement(p4c_generator_state_t* state, const p4c_node_t* node, p4c_bool_t push_stack);
+
+// Expression results are always stored in R4
+static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, const p4c_node_t* node) {
+
+}
+
+static void p4c_gen_return_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
+	p4c_instruction_t ins;
+	
+	if (node->first != NULL) {
+		p4c_expression_type_t exp_type = p4c_gen_expression(state, node->first);
+		ins.op = P4C_OP_MOV;
+		ins.arg1 = P4C_R3;
+		ins.arg2 = P4C_R4;
+		p4c_put_instruction(state, &ins); // MOV R3, R4
+	}
+
+	// Unwind stack and get return address
+	int offset = 1;
+	p4c_stack_frame_t* frame = state->stack_frame;
+	for (int i = 0; i < state->stack_frame_depth; ++i) {
+		offset += frame->size;
+		frame = frame->prev;
+	}
+
+	p4c_put_u16(state, P4C_R4, offset);
+	ins.op = P4C_OP_ADD;
+	ins.arg1 = P4C_R6;
+	ins.arg2 = P4C_R6;
+	ins.arg3 = P4C_R4;
+	p4c_put_instruction(state, &ins); // INC R6, R6, R4
+
+	ins.op = P4C_OP_LOAD;
+	ins.arg1 = P4C_R4;
+	ins.arg2 = P4C_R6;
+	p4c_put_instruction(state, &ins); // LOAD R4, M[R6]
+	p4c_jmp_reg(state, P4C_OP_JMP, P4C_R4); // JMP R4
+}
+
+static void p4c_gen_let_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
+	p4c_expression_type_t exp_type = p4c_gen_expression(state, node->first);
+	p4c_stack_variable_t* var = p4c_declare_variable(state, node->attribute, node->attribute_sz, exp_type.value_type);
+	p4c_instruction_t ins;
+	ins.op = P4C_OP_STOR;
+	ins.arg1 = P4C_R6;
+	ins.arg2 = P4C_R4;
+	p4c_put_instruction(state, &ins); // STOR M[R6], R4
+	ins.op = P4C_OP_DEC;
+	ins.arg1 = P4C_R6;
+	p4c_put_instruction(state, &ins); // DEC R6
+}
+
+static void p4c_gen_if_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
+	// TODO
+}
+
+static void p4c_gen_while_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
+	// TODO
+}
+
+static void p4c_gen_compound_statement(p4c_generator_state_t* state, const p4c_node_t* node, p4c_bool_t push_stack) {
+	if (push_stack) {
+		p4c_push_stack_frame(state);
+	}
+
+	for (const p4c_node_t* c = node->first; c != NULL; c = c->next) {
+		switch (c->info->type) {
+		case P4C_TOKEN_COMPOUND_STATEMENT: p4c_gen_compound_statement(state, c, P4C_TRUE); break;
+		case P4C_TOKEN_RETURN: p4c_gen_return_statement(state, c); break;
+		case P4C_TOKEN_LET: p4c_gen_let_statement(state, c); break;
+		case P4C_TOKEN_IF: p4c_gen_if_statement(state, c); break;
+		case P4C_TOKEN_WHILE: p4c_gen_while_statement(state, c); break;
+		default: p4c_gen_expression(state, c); break;
+		}
+	}
+
+	if (push_stack) {
+		p4c_pop_stack_frame(state);
+	}
+}
+
+static void p4c_gen_function(p4c_generator_state_t* state, const p4c_function_t* func) {
+	state->current_func = func;
+	p4c_push_stack_frame(state);
+	p4c_put_label(state, func->label);
+
+	// Push R7 to stack
+	p4c_instruction_t ins;
+	ins.op = P4C_OP_STOR;
+	ins.arg1 = P4C_R6;
+	ins.arg2 = P4C_R7;
+	p4c_put_instruction(state, &ins);
+	ins.op = P4C_OP_DEC;
+	ins.arg1 = P4C_R6;
+	p4c_put_instruction(state, &ins);
+
+	// TODO, declare parameters
+	p4c_gen_compound_statement(state, func->body, P4C_FALSE);
+	p4c_pop_stack_frame(state);
+	state->current_func = NULL;
+}
+
 static void p4c_gen_program(p4c_generator_state_t* state, const p4c_node_t* root) {
 	const p4c_node_t* c = root->first;
 	while (c != NULL) {
@@ -577,24 +692,10 @@ int p4c_run_generator(const p4c_node_t* ast, p4c_instruction_t* instructions, in
 	state.next_label = 1;
 	state.first_func = NULL;
 	state.stack_frame = NULL;
+	state.stack_frame_depth = -1;
 
 	p4c_push_stack_frame(&state);
 	p4c_gen_program(&state, ast);
-
-	p4c_instruction_t ins;
-	p4c_put_u16(&state, P4C_R4, 0);
-	p4c_put_u16(&state, P4C_R5, 10);
-	p4c_put_label(&state, 1);
-	ins.op = P4C_OP_INC;
-	ins.arg1 = P4C_R4;
-	p4c_put_instruction(&state, &ins);
-	ins.op = P4C_OP_CMP;
-	ins.arg1 = P4C_R4;
-	ins.arg2 = P4C_R5;
-	p4c_put_instruction(&state, &ins);
-	p4c_jmp_label(&state, P4C_OP_JMP_NZ, 1);
-	p4c_put_label(&state, 2);
-	p4c_jmp_label(&state, P4C_OP_BR, 2);
 
 	// Clean-up state
 	for (p4c_function_t* func = state.first_func; func != NULL;) {
