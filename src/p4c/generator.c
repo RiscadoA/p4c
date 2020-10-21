@@ -280,7 +280,7 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 		if (node->first->next == NULL) {
 			type = p4c_analyze_expression(state, node->first);
 			type.is_reference = P4C_FALSE;
-			if (type.value_type.base->type != P4C_TOKEN_I16 && type.value_type.base->type != P4C_TOKEN_U16 && type.value_type.indirection == 0) {
+			if (type.value_type.base->type != P4C_TOKEN_I16 && type.value_type.indirection == 0) {
 				fprintf(stderr, "Generator stage failed:\nUnsupported expression type '%s' on unary operator '%s'\n", type.value_type.base->name, node->info->name);
 				exit(5);
 			}
@@ -632,6 +632,18 @@ static void p4c_push_temp_var(p4c_generator_state_t* state, unsigned char reg) {
 	state->temp_stack_sz += 1;
 }
 
+static void p4c_pop_temp_var(p4c_generator_state_t* state, p4c_enum_t reg) {
+	p4c_instruction_t ins;
+	ins.op = P4C_OP_INC;
+	ins.arg1 = P4C_R6;
+	p4c_put_instruction(state, &ins);
+	ins.op = P4C_OP_LOAD;
+	ins.arg1 = reg;
+	ins.arg2 = P4C_R6;
+	p4c_put_instruction(state, &ins);
+	state->temp_stack_sz -= 1;
+}
+
 static void p4c_gen_compound_statement(p4c_generator_state_t* state, const p4c_node_t* node, p4c_bool_t push_stack);
 
 static void p4c_gen_reference(p4c_generator_state_t* state, const p4c_node_t* node, unsigned char target) {
@@ -747,11 +759,47 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 			}
 		}
 		}
-		// TODO
 	}
 	// 1 operand
 	else if (node->first->next == NULL) {
-		// TODO
+		switch (node->info->type) {
+		case P4C_TOKEN_ADD:
+			// Do nothing
+			p4c_gen_expression(state, node->first, target);
+			break;
+		case P4C_TOKEN_SUBTRACT:
+		case P4C_TOKEN_BINARY_NOT:
+		case P4C_TOKEN_INC:
+		case P4C_TOKEN_DEC:
+		{
+			unsigned char op = P4C_OP_SUB;
+			switch (node->info->type) {
+			case P4C_TOKEN_SUBTRACT: op = P4C_OP_SUB; break;
+			case P4C_TOKEN_BINARY_NOT: op = P4C_OP_NEG; break;
+			case P4C_TOKEN_INC: op = P4C_OP_INC; break;
+			case P4C_TOKEN_DEC: op = P4C_OP_DEC; break;
+			}
+
+			ins.op = op;
+			ins.arg2 = P4C_R0;
+
+			if (target == 0xFF) {
+				p4c_gen_expression(state, node->first, P4C_R4);
+				ins.arg1 = P4C_R4;
+				ins.arg3 = P4C_R4;
+				p4c_put_instruction(state, &ins);
+				p4c_push_temp_var(state, P4C_R4);
+			}
+			else {
+				p4c_gen_expression(state, node->first, target);
+				ins.arg1 = target;
+				ins.arg3 = target;
+				p4c_put_instruction(state, &ins);
+			}
+
+			break;
+		}
+		}
 	}
 	// 2 operands
 	else if (node->first->next->next == NULL) {
@@ -773,16 +821,7 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 
 			p4c_gen_expression(state, node->first, 0xFF);
 			p4c_gen_expression(state, node->first->next, P4C_R5);
-
-			// Pop first operand from stack
-			ins.op = P4C_OP_INC;
-			ins.arg1 = P4C_R6;
-			p4c_put_instruction(state, &ins);
-			ins.op = P4C_OP_LOAD;
-			ins.arg1 = P4C_R4;
-			ins.arg2 = P4C_R6;
-			p4c_put_instruction(state, &ins);
-			state->temp_stack_sz -= 1;
+			p4c_pop_temp_var(state, P4C_R4);
 
 			if (target == 0xFF) {
 				ins.op = op;
@@ -806,16 +845,7 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 		{
 			p4c_gen_expression(state, node->first->next, 0xFF);
 			p4c_gen_reference(state, node->first, P4C_R4);
-
-			// Pop first operand from stack
-			ins.op = P4C_OP_INC;
-			ins.arg1 = P4C_R6;
-			p4c_put_instruction(state, &ins);
-			ins.op = P4C_OP_LOAD;
-			ins.arg1 = P4C_R5;
-			ins.arg2 = P4C_R6;
-			p4c_put_instruction(state, &ins);
-			state->temp_stack_sz -= 1;
+			p4c_pop_temp_var(state, P4C_R5);
 
 			// Assign value
 			ins.op = P4C_OP_STOR;

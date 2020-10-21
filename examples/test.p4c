@@ -24,8 +24,13 @@ fn add(x: u16, y: u16) -> u16 {
 	return x + y;
 }
 
+fn neg(x: u16) -> i16 {
+	return -(x as i16);
+}
+
 fn main() -> void {
 	let x = add(0x10, shr(0b10));
 	let z = (x = x + 4) + 1;
+	let y = neg(2);
 	return;
 }
