@@ -21,7 +21,7 @@ fn dumb_mul(x: u16, y: u16) -> u16 {
 }*/
 
 fn increment(x: *u16) -> void {
-	++*x;
+	++x[0];
 	return;
 }
 

@@ -351,8 +351,7 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 		type.value_type = var->type;
 		type.is_reference = P4C_TRUE;
 		break;
-	}
-		
+	}	
 
 	case P4C_TOKEN_CALL:
 	{
@@ -437,6 +436,21 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 		type = p4c_analyze_expression(state, node->first);
 		if (type.value_type.indirection <= 0) {
 			fprintf(stderr, "Generator stage failed:\nOnly pointers may be dereferenced\n");
+			exit(5);
+		}
+		type.value_type.indirection -= 1;
+		type.is_reference = P4C_TRUE;
+		break;
+
+	case P4C_TOKEN_ARRAY_ACCESS:
+		type = p4c_analyze_expression(state, node->first);
+		if (type.value_type.indirection <= 0) {
+			fprintf(stderr, "Generator stage failed:\nOnly pointers may be accessed as arrays\n");
+			exit(5);
+		}
+		type2 = p4c_analyze_expression(state, node->first->next);
+		if (type2.value_type.base != P4C_TOKEN_U16 && type2.value_type.indirection != 0) {
+			fprintf(stderr, "Generator stage failed:\nArray access indices must be of type 'u16'\n");
 			exit(5);
 		}
 		type.value_type.indirection -= 1;
@@ -694,6 +708,27 @@ static p4c_expression_type_t p4c_gen_reference(p4c_generator_state_t* state, con
 		type = p4c_gen_expression(state, node->first, target);
 		type.value_type.indirection -= 1;
 		type.is_reference = P4C_TRUE;
+		break;
+	case P4C_TOKEN_ARRAY_ACCESS:
+		type = p4c_gen_expression(state, node->first, 0xFF);
+		type.value_type.indirection = -1;
+		type.is_reference = P4C_TRUE;
+		p4c_gen_expression(state, node->first->next, P4C_R5);
+		p4c_pop_temp_var(state, P4C_R4);
+		ins.op = P4C_OP_ADD;
+		if (target == 0xFF) {
+			ins.arg1 = P4C_R4;
+			ins.arg2 = P4C_R4;
+			ins.arg3 = P4C_R5;
+			p4c_put_instruction(state, &ins);
+			p4c_push_temp_var(state, P4C_R4);
+		}
+		else if (target != P4C_R0) {
+			ins.arg1 = target;
+			ins.arg2 = P4C_R4;
+			ins.arg3 = P4C_R5;
+			p4c_put_instruction(state, &ins);
+		}
 		break;
 	case P4C_TOKEN_MEMBER:
 		abort(); // TODO: implement member access
@@ -999,8 +1034,46 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 					p4c_put_instruction(state, &ins);
 				}
 			}
-		}
 
+			break;
+		}
+		case P4C_TOKEN_ARRAY_ACCESS:
+		{
+
+			if (target == 0xFF) {
+				type = p4c_gen_expression(state, node->first, 0xFF);
+				p4c_gen_expression(state, node->first->next, P4C_R5);
+				p4c_pop_temp_var(state, P4C_R4);
+				ins.op = P4C_OP_ADD;
+				ins.arg1 = P4C_R4;
+				ins.arg2 = P4C_R4;
+				ins.arg2 = P4C_R5;
+				p4c_put_instruction(state, &ins);
+				ins.op = P4C_OP_LOAD;
+				ins.arg1 = P4C_R4;
+				ins.arg1 = P4C_R4;
+				p4c_put_instruction(state, &ins);
+				p4c_push_temp_var(state, P4C_R4);
+			}
+			else if (target != P4C_R0) {
+				type = p4c_gen_expression(state, node->first, 0xFF);
+				p4c_gen_expression(state, node->first->next, P4C_R5);
+				p4c_pop_temp_var(state, P4C_R4);
+				ins.op = P4C_OP_ADD;
+				ins.arg1 = P4C_R4;
+				ins.arg2 = P4C_R4;
+				ins.arg2 = P4C_R5;
+				p4c_put_instruction(state, &ins);
+				ins.op = P4C_OP_LOAD;
+				ins.arg1 = target;
+				ins.arg1 = P4C_R4;
+				p4c_put_instruction(state, &ins);
+			}
+
+			type.value_type.indirection -= 1;
+			type.is_reference = P4C_TRUE;
+			break;
+		}
 		}
 	}
 	else {
