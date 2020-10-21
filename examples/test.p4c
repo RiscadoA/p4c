@@ -20,17 +20,14 @@ fn dumb_mul(x: u16, y: u16) -> u16 {
 	return ans;
 }*/
 
-fn add(x: u16, y: u16) -> u16 {
-	return x + y;
-}
-
-fn neg(x: u16) -> i16 {
-	return -(x as i16);
+fn increment(x: *u16) -> void {
+	++*x;
+	return;
 }
 
 fn main() -> void {
-	let x = add(0x10, shr(0b10));
-	let z = (x = x + 4) + 1;
-	let y = neg(2);
+	let x = 2;
+	++x;
+	increment(&x);
 	return;
 }

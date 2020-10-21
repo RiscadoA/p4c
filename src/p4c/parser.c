@@ -221,20 +221,42 @@ static p4c_node_t* p4c_parse_operator5(p4c_parser_state_t* state) {
 		tok = p4c_accept_token(state, &P4C_TINFO_BINARY_AND);
 	}
 	if (tok == NULL) {
+		// && = double &
+		// This always produces invalid code, but allows us to give a better error message
+		tok = p4c_accept_token(state, &P4C_TINFO_LOGICAL_AND);
+	}
+	if (tok == NULL) {
 		tok = p4c_accept_token(state, &P4C_TINFO_POINTER);
 	}
 	if (tok != NULL) {
 		p4c_node_t* op = p4c_get_node(state);
+		p4c_node_t* term = p4c_parse_operator5(state);
+
+		if (term == NULL) {
+			fprintf(stderr, "Parser stage failed:\nFailed to parse unary operator '%s' term\n", tok->info->name);
+			exit(4);
+		}
+
 		op->info = tok->info;
 		if (op->info == &P4C_TINFO_BINARY_AND) {
 			op->info = &P4C_TINFO_REFERENCE;
+			p4c_add_to_node(op, term);
 		}
 		else if (op->info == &P4C_TINFO_POINTER) {
 			op->info = &P4C_TINFO_DEREFERENCE;
+			p4c_add_to_node(op, term);
+		}
+		else if (op->info == &P4C_TINFO_LOGICAL_AND) {
+			p4c_node_t* op2 = p4c_get_node(state);
+			op->info = &P4C_TINFO_REFERENCE;
+			op2->info = &P4C_TINFO_REFERENCE;
+			p4c_add_to_node(op, op2);
+			p4c_add_to_node(op2, term);
+		}
+		else {
+			p4c_add_to_node(op, term);
 		}
 
-		// Parse term
-		p4c_add_to_node(op, p4c_parse_operator5(state));
 		return op;
 	}
 
@@ -458,21 +480,34 @@ static p4c_node_t* p4c_parse_let(p4c_parser_state_t* state) {
 	if (p4c_accept_token(state, &P4C_TINFO_COLON) != NULL) {
 		p4c_node_t* type = p4c_parse_type(state);
 		if (type == NULL) {
-			fprintf(stderr, "Parser stage failed:\nCoudln't parse type in let statement\n");
+			fprintf(stderr, "Parser stage failed:\nCouldn't parse type in let statement\n");
 			exit(4);
 		}
 
 		p4c_node_t* op = p4c_get_node(state);
 		op->info = &P4C_TINFO_AS;
-
 		p4c_expect_token(state, &P4C_TINFO_ASSIGN);
-		p4c_add_to_node(op, p4c_parse_expression(state));
+
+		p4c_node_t* exp = p4c_parse_expression(state);
+		if (exp == NULL) {
+			fprintf(stderr, "Parser stage failed:\nCouldn't parse expression in let statement\n");
+			exit(4);
+		}
+
+		p4c_add_to_node(op, exp);
 		p4c_add_to_node(op, type);
 		p4c_add_to_node(out_node, op);
 	}
 	else {
 		p4c_expect_token(state, &P4C_TINFO_ASSIGN);
-		p4c_add_to_node(out_node, p4c_parse_expression(state));
+
+		p4c_node_t* exp = p4c_parse_expression(state);
+		if (exp == NULL) {
+			fprintf(stderr, "Parser stage failed:\nCouldn't parse expression in let statement\n");
+			exit(4);
+		}
+
+		p4c_add_to_node(out_node, exp);
 	}
 
 	p4c_expect_token(state, &P4C_TINFO_SEMICOLON);
