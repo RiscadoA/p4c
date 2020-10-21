@@ -757,7 +757,20 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 	else if (node->first->next->next == NULL) {
 		switch (node->info->type) {
 		case P4C_TOKEN_ADD:
+		case P4C_TOKEN_SUBTRACT:
+		case P4C_TOKEN_BINARY_AND:
+		case P4C_TOKEN_BINARY_OR:
+		case P4C_TOKEN_BINARY_XOR:
 		{
+			unsigned char op = P4C_OP_ADD;
+			switch (node->info->type) {
+			case P4C_TOKEN_ADD: op = P4C_OP_ADD; break;
+			case P4C_TOKEN_SUBTRACT: op = P4C_OP_SUB; break;
+			case P4C_TOKEN_BINARY_AND: op = P4C_OP_AND; break;
+			case P4C_TOKEN_BINARY_OR: op = P4C_OP_OR; break;
+			case P4C_TOKEN_BINARY_XOR: op = P4C_OP_XOR; break;
+			}
+
 			p4c_gen_expression(state, node->first, 0xFF);
 			p4c_gen_expression(state, node->first->next, P4C_R5);
 
@@ -772,7 +785,7 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 			state->temp_stack_sz -= 1;
 
 			if (target == 0xFF) {
-				ins.op = P4C_OP_ADD;
+				ins.op = op;
 				ins.arg1 = P4C_R4;
 				ins.arg2 = P4C_R4;
 				ins.arg3 = P4C_R5;
@@ -780,7 +793,7 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 				p4c_push_temp_var(state, P4C_R4);
 			}
 			else {
-				ins.op = P4C_OP_ADD;
+				ins.op = op;
 				ins.arg1 = target;
 				ins.arg2 = P4C_R4;
 				ins.arg3 = P4C_R5;
