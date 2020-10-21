@@ -195,6 +195,22 @@ static p4c_node_t* p4c_parse_operator_last(p4c_parser_state_t* state) {
 		return out_node;
 	}
 
+	// <true>
+	tok = p4c_accept_token(state, &P4C_TINFO_TRUE);
+	if (tok != NULL) {
+		out_node = p4c_get_node(state);
+		out_node->info = tok->info;
+		return out_node;
+	}
+
+	// <false>
+	tok = p4c_accept_token(state, &P4C_TINFO_FALSE);
+	if (tok != NULL) {
+		out_node = p4c_get_node(state);
+		out_node->info = tok->info;
+		return out_node;
+	}
+
 	return NULL;
 }
 
@@ -445,7 +461,8 @@ static p4c_node_t* p4c_parse_operator1(p4c_parser_state_t* state) {
 			tok->info->type != P4C_TOKEN_BINARY_AND &&
 			tok->info->type != P4C_TOKEN_BINARY_OR &&
 			tok->info->type != P4C_TOKEN_LOGICAL_AND &&
-			tok->info->type != P4C_TOKEN_LOGICAL_OR)) {
+			tok->info->type != P4C_TOKEN_LOGICAL_OR &&
+			tok->info->type != P4C_TOKEN_LOGICAL_XOR)) {
 			break;
 		}
 

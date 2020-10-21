@@ -20,14 +20,15 @@ fn dumb_mul(x: u16, y: u16) -> u16 {
 	return ans;
 }*/
 
-fn increment(x: *u16) -> void {
-	++x[0];
-	return;
+fn check(x: u16, y: u16) -> bool {
+	return x > y && x >= 3 && x < 5;
 }
 
 fn main() -> void {
-	let x = 2;
-	++x;
-	increment(&x);
+	let x = check(5, 1); // 0
+	let y = check(4, 1); // 1
+	let z = check(3, 2); // 1
+	let a = check(3, 3); // 0
+	let b = check(2, 3); // 0
 	return;
 }

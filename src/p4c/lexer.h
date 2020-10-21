@@ -25,6 +25,7 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 #define P4C_TOKEN_VOID					0x00
 #define P4C_TOKEN_I16					0x01
 #define P4C_TOKEN_U16					0x02
+#define P4C_TOKEN_BOOL					0x03
 
 #define P4C_TOKEN_INT_LITERAL			0x10
 #define P4C_TOKEN_IDENTIFIER			0x11
@@ -37,6 +38,8 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 #define P4C_TOKEN_RETURN				0x25
 #define P4C_TOKEN_LET					0x26
 #define P4C_TOKEN_AS					0x27
+#define P4C_TOKEN_TRUE					0x28
+#define P4C_TOKEN_FALSE					0x29
 
 #define P4C_TOKEN_ADD					0x30
 #define P4C_TOKEN_SUBTRACT				0x31
@@ -57,6 +60,7 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 #define P4C_TOKEN_INC					0x42
 #define P4C_TOKEN_DEC					0x43
 #define P4C_TOKEN_MEMBER				0x44
+#define P4C_TOKEN_LOGICAL_XOR			0x45
 
 #define P4C_TOKEN_OPEN_BRACES			0x50
 #define P4C_TOKEN_CLOSE_BRACES			0x51
@@ -73,6 +77,7 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 const p4c_token_info_t P4C_TINFO_VOID;
 const p4c_token_info_t P4C_TINFO_I16;
 const p4c_token_info_t P4C_TINFO_U16;
+const p4c_token_info_t P4C_TINFO_BOOL;
 
 const p4c_token_info_t P4C_TINFO_INT_LITERAL;
 const p4c_token_info_t P4C_TINFO_IDENTIFIER;
@@ -85,6 +90,8 @@ const p4c_token_info_t P4C_TINFO_FOR;
 const p4c_token_info_t P4C_TINFO_RETURN;
 const p4c_token_info_t P4C_TINFO_LET;
 const p4c_token_info_t P4C_TINFO_AS;
+const p4c_token_info_t P4C_TINFO_TRUE;
+const p4c_token_info_t P4C_TINFO_FALSE;
 
 const p4c_token_info_t P4C_TINFO_ADD;
 const p4c_token_info_t P4C_TINFO_SUBTRACT;
@@ -105,6 +112,7 @@ const p4c_token_info_t P4C_TINFO_ASSIGN;
 const p4c_token_info_t P4C_TINFO_INC;
 const p4c_token_info_t P4C_TINFO_DEC;
 const p4c_token_info_t P4C_TINFO_MEMBER;
+const p4c_token_info_t P4C_TINFO_LOGICAL_XOR;
 
 const p4c_token_info_t P4C_TINFO_OPEN_BRACES;
 const p4c_token_info_t P4C_TINFO_CLOSE_BRACES;

@@ -5,6 +5,7 @@
 const p4c_token_info_t P4C_TINFO_VOID = { P4C_TOKEN_VOID, P4C_TRUE, P4C_FALSE, P4C_FALSE, "void" };
 const p4c_token_info_t P4C_TINFO_I16 = { P4C_TOKEN_I16, P4C_TRUE, P4C_FALSE, P4C_FALSE, "i16" };
 const p4c_token_info_t P4C_TINFO_U16 = { P4C_TOKEN_U16, P4C_TRUE, P4C_FALSE, P4C_FALSE, "u16" };
+const p4c_token_info_t P4C_TINFO_BOOL = { P4C_TOKEN_BOOL, P4C_TRUE, P4C_FALSE, P4C_FALSE, "bool" };
 
 const p4c_token_info_t P4C_TINFO_INT_LITERAL = { P4C_TOKEN_INT_LITERAL, P4C_FALSE, P4C_FALSE, P4C_FALSE, "int_literal" };
 const p4c_token_info_t P4C_TINFO_IDENTIFIER = { P4C_TOKEN_IDENTIFIER, P4C_FALSE, P4C_FALSE, P4C_FALSE, "identifier" };
@@ -17,6 +18,8 @@ const p4c_token_info_t P4C_TINFO_FOR = { P4C_TOKEN_FOR, P4C_FALSE, P4C_FALSE, P4
 const p4c_token_info_t P4C_TINFO_RETURN = { P4C_TOKEN_RETURN, P4C_FALSE, P4C_FALSE, P4C_FALSE, "return" };
 const p4c_token_info_t P4C_TINFO_LET = { P4C_TOKEN_LET, P4C_FALSE, P4C_FALSE, P4C_FALSE, "let" };
 const p4c_token_info_t P4C_TINFO_AS = { P4C_TOKEN_AS, P4C_FALSE, P4C_FALSE, P4C_FALSE, "as" };
+const p4c_token_info_t P4C_TINFO_TRUE = { P4C_TOKEN_TRUE, P4C_FALSE, P4C_FALSE, P4C_FALSE, "true" };
+const p4c_token_info_t P4C_TINFO_FALSE = { P4C_TOKEN_FALSE, P4C_FALSE, P4C_FALSE, P4C_FALSE, "false" };
 
 const p4c_token_info_t P4C_TINFO_ADD = { P4C_TOKEN_ADD, P4C_FALSE, P4C_FALSE, P4C_TRUE, "+" };
 const p4c_token_info_t P4C_TINFO_SUBTRACT = { P4C_TOKEN_SUBTRACT, P4C_FALSE, P4C_FALSE, P4C_TRUE, "-" };
@@ -37,6 +40,7 @@ const p4c_token_info_t P4C_TINFO_ASSIGN = { P4C_TOKEN_ASSIGN, P4C_FALSE, P4C_FAL
 const p4c_token_info_t P4C_TINFO_INC = { P4C_TOKEN_INC, P4C_FALSE, P4C_FALSE, P4C_TRUE, "++" };
 const p4c_token_info_t P4C_TINFO_DEC = { P4C_TOKEN_DEC, P4C_FALSE, P4C_FALSE, P4C_TRUE, "--" };
 const p4c_token_info_t P4C_TINFO_MEMBER = { P4C_TOKEN_MEMBER, P4C_FALSE, P4C_FALSE, P4C_TRUE, "member-access" };
+const p4c_token_info_t P4C_TINFO_LOGICAL_XOR = { P4C_TOKEN_LOGICAL_XOR, P4C_FALSE, P4C_FALSE, P4C_TRUE, "^^" };
 
 const p4c_token_info_t P4C_TINFO_OPEN_BRACES = { P4C_TOKEN_OPEN_BRACES, P4C_FALSE, P4C_TRUE, P4C_FALSE, "{" };
 const p4c_token_info_t P4C_TINFO_CLOSE_BRACES = { P4C_TOKEN_CLOSE_BRACES, P4C_FALSE, P4C_TRUE, P4C_FALSE, "}" };
@@ -147,6 +151,9 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 	KEYWORD_TOK("return", P4C_TINFO_RETURN)
 	KEYWORD_TOK("let", P4C_TINFO_LET)
 	KEYWORD_TOK("as", P4C_TINFO_AS)
+	KEYWORD_TOK("bool", P4C_TINFO_BOOL)
+	KEYWORD_TOK("true", P4C_TINFO_TRUE)
+	KEYWORD_TOK("false", P4C_TINFO_FALSE)
 	TWO_CHAR_TOK("->", P4C_TINFO_ARROW)
 	TWO_CHAR_TOK("++", P4C_TINFO_INC)
 	TWO_CHAR_TOK("--", P4C_TINFO_DEC)
@@ -156,6 +163,7 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 	TWO_CHAR_TOK("!=", P4C_TINFO_DIFFERENT)
 	TWO_CHAR_TOK(">=", P4C_TINFO_GEQUAL)
 	TWO_CHAR_TOK("<=", P4C_TINFO_LEQUAL)
+	TWO_CHAR_TOK("^^", P4C_TINFO_LOGICAL_XOR)
 	TWO_CHAR_TOK("&&", P4C_TINFO_LOGICAL_AND)
 	TWO_CHAR_TOK("||", P4C_TINFO_LOGICAL_OR)
 	SINGLE_CHAR_TOK('>', P4C_TINFO_GREATER)

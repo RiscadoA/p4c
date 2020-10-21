@@ -145,6 +145,13 @@ static void p4c_jmp_label(p4c_generator_state_t* state, unsigned char op, unsign
 	p4c_put_instruction(state, &ins);
 }
 
+static void p4c_jmp_ahead(p4c_generator_state_t* state, unsigned char op, unsigned int offset) {
+	p4c_instruction_t ins;
+	ins.op = op;
+	ins.arg3 = offset;
+	p4c_put_instruction(state, &ins);
+}
+
 static void p4c_read_variable(p4c_generator_state_t* state, const p4c_node_t* identifier, p4c_enum_t reg) {
 	// Get variable offset 
 	
@@ -159,7 +166,7 @@ static void p4c_read_variable(p4c_generator_state_t* state, const p4c_node_t* id
 static p4c_type_t p4c_type_from_node(const p4c_node_t* node) {
 	p4c_type_t type;
 	type.indirection = -1;
-	for (p4c_node_t* c = node; c != NULL; c = c->first) {
+	for (const p4c_node_t* c = node; c != NULL; c = c->first) {
 		type.base = c->info;
 		type.indirection += 1;
 	}
@@ -262,17 +269,49 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 	switch (node->info->type) {
 	case P4C_TOKEN_LOGICAL_AND:
 	case P4C_TOKEN_LOGICAL_OR:
-	case P4C_TOKEN_LOGICAL_NOT:
-		fprintf(stderr, "Generator stage failed:\nLogical operators are only allowed inside conditions\n");
-		exit(5);
+	case P4C_TOKEN_LOGICAL_XOR:
+		type = p4c_analyze_expression(state, node->first);
+		type2 = p4c_analyze_expression(state, node->first->next);
+		if (type.value_type.base->type != P4C_TOKEN_BOOL || type.value_type.indirection != 0) {
+			fprintf(stderr, "Generator stage failed:\nLogical operator '%s' first term is not a boolean\n", node->info->name);
+			exit(5);
+		}
+		if (type2.value_type.base->type != P4C_TOKEN_BOOL || type2.value_type.indirection != 0) {
+			fprintf(stderr, "Generator stage failed:\nLogical operator '%s' second term is not a boolean\n", node->info->name);
+			exit(5);
+		}
+
+		type.value_type.base = &P4C_TINFO_BOOL;
+		type.value_type.indirection = 0;
+		break;
+
+	case P4C_TOKEN_LOGICAL_NOT:type = p4c_analyze_expression(state, node->first);
+		type = p4c_analyze_expression(state, node->first);
+		if (type.value_type.base->type != P4C_TOKEN_BOOL || type.value_type.indirection != 0) {
+			fprintf(stderr, "Generator stage failed:\nLogical operator '%s' term is not a boolean\n", node->info->name);
+			exit(5);
+		}
+
+		type.value_type.base = &P4C_TINFO_BOOL;
+		type.value_type.indirection = 0;
+		break;
+
 	case P4C_TOKEN_EQUAL:
 	case P4C_TOKEN_DIFFERENT:
 	case P4C_TOKEN_GREATER:
 	case P4C_TOKEN_LESS:
 	case P4C_TOKEN_GEQUAL:
 	case P4C_TOKEN_LEQUAL:
-		fprintf(stderr, "Generator stage failed:\nComparison operators are only allowed inside conditions\n");
-		exit(5);
+		type = p4c_analyze_expression(state, node->first);
+		type2 = p4c_analyze_expression(state, node->first->next);
+		if (type.value_type.base->type != type2.value_type.base->type || type.value_type.indirection != type2.value_type.indirection) {
+			fprintf(stderr, "Generator stage failed:\nComparison operator '%s' first and second term types do not match\n", node->info->name);
+
+		}
+
+		type.value_type.base = &P4C_TINFO_BOOL;
+		type.value_type.indirection = 0;
+		break;
 
 	case P4C_TOKEN_ADD:
 	case P4C_TOKEN_SUBTRACT:
@@ -284,10 +323,10 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 				exit(5);
 			}
 
-			if (type.value_type.base == P4C_TOKEN_U16 &&
+			if (type.value_type.base->type == P4C_TOKEN_U16 &&
 				type.value_type.indirection == 0 &&
 				!type.is_reference) {
-				type.value_type.base = P4C_TOKEN_I16;
+				type.value_type.base = &P4C_TINFO_I16;
 			}
 
 			break;
@@ -422,6 +461,13 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 		type.is_reference = P4C_FALSE;
 		break;
 
+	case P4C_TOKEN_TRUE:
+	case P4C_TOKEN_FALSE:
+		type.value_type.base = &P4C_TINFO_BOOL;
+		type.value_type.indirection = 0;
+		type.is_reference = P4C_FALSE;
+		break;
+
 	case P4C_TOKEN_REFERENCE:
 		type = p4c_analyze_expression(state, node->first);
 		if (!type.is_reference) {
@@ -449,7 +495,7 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 			exit(5);
 		}
 		type2 = p4c_analyze_expression(state, node->first->next);
-		if (type2.value_type.base != P4C_TOKEN_U16 && type2.value_type.indirection != 0) {
+		if (type2.value_type.base->type != P4C_TOKEN_U16 && type2.value_type.indirection != 0) {
 			fprintf(stderr, "Generator stage failed:\nArray access indices must be of type 'u16'\n");
 			exit(5);
 		}
@@ -458,7 +504,7 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 		break;
 
 	default:
-		fprintf(stderr, "Generator stage failed:\nUnexpected token '%s' on expression\n", node->info->name);
+		fprintf(stderr, "Generator stage failed:\nUnexpected node '%s' on expression\n", node->info->name);
 		exit(5);
 	}
 
@@ -488,40 +534,15 @@ static void p4c_analyze_let_statement(p4c_generator_state_t* state, const p4c_no
 	p4c_declare_variable(state, node->attribute, node->attribute_sz, exp_type.value_type);
 }
 
-static void p4c_analyze_condition(p4c_generator_state_t* state, const p4c_node_t* node) {
-	p4c_expression_type_t type1, type2;
-	switch (node->info->type) {
-	case P4C_TOKEN_EQUAL:
-	case P4C_TOKEN_DIFFERENT:
-	case P4C_TOKEN_GREATER:
-	case P4C_TOKEN_LESS:
-	case P4C_TOKEN_GEQUAL:
-	case P4C_TOKEN_LEQUAL:
-		type1 = p4c_analyze_expression(state, node->first);
-		type2 = p4c_analyze_expression(state, node->first->next);
-		if (type1.value_type.base->type != type2.value_type.base->type || type1.value_type.indirection != type2.value_type.indirection) {
-			fprintf(stderr, "Generator stage failed:\nComparison operator '%s' argument types don't match\n", node->info->name);
-			exit(5);
-		}
-		break;
-	case P4C_TOKEN_LOGICAL_AND:
-	case P4C_TOKEN_LOGICAL_OR:
-		p4c_analyze_condition(state, node->first);
-		p4c_analyze_condition(state, node->first->next);
-		break;
-	case P4C_TOKEN_LOGICAL_NOT:
-		p4c_analyze_condition(state, node->first);
-		break;
-	default:
-		fprintf(stderr, "Generator stage failed:\nA condition must be formed using logical and comparison operators (unsupported operator '%s')\n", node->info->name);
-		exit(5);
-	}
-}
-
 static p4c_bool_t p4c_analyze_if_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
 	p4c_bool_t finished = P4C_FALSE;
 
-	p4c_analyze_condition(state, node->first);
+	p4c_expression_type_t type = p4c_analyze_expression(state, node->first);
+	if (type.value_type.base->type != P4C_TOKEN_BOOL || type.value_type.indirection != 0) {
+		fprintf(stderr, "Generator stage failed:\nInvalid expression type in if condition (must result in a boolean)\n");
+		exit(5);
+	}
+
 	finished = p4c_analyze_compound_statement(state, node->first->next, P4C_TRUE);
 	if (node->first->next->next != NULL) {
 		finished = finished && p4c_analyze_compound_statement(state, node->first->next->next, P4C_TRUE);
@@ -534,7 +555,12 @@ static p4c_bool_t p4c_analyze_if_statement(p4c_generator_state_t* state, const p
 }
 
 static void p4c_analyze_while_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
-	p4c_analyze_condition(state, node->first);
+	p4c_expression_type_t type = p4c_analyze_expression(state, node->first);
+	if (type.value_type.base->type != P4C_TOKEN_BOOL || type.value_type.indirection != 0) {
+		fprintf(stderr, "Generator stage failed:\nInvalid expression type in while condition (must result in a boolean)\n");
+		exit(5);
+	}
+
 	p4c_analyze_compound_statement(state, node->first->next, P4C_TRUE);
 }
 
@@ -840,12 +866,64 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 			else {
 				p4c_put_u16(state, target, p4c_get_literal_val(node->attribute, node->attribute_sz));
 			}
+			break;
+		}
+		case P4C_TOKEN_TRUE:
+		{
+			if (target == 0xFF) {
+				p4c_put_u16(state, P4C_R4, 1);
+				p4c_push_temp_var(state, P4C_R4);
+			}
+			else {
+				p4c_put_u16(state, target, 1);
+			}
+			break;
+		}
+		case P4C_TOKEN_FALSE:
+		{
+			if (target == 0xFF) {
+				p4c_put_u16(state, P4C_R4, 0);
+				p4c_push_temp_var(state, P4C_R4);
+			}
+			else {
+				p4c_put_u16(state, target, 0);
+			}
+			break;
 		}
 		}
 	}
 	// 1 operand
 	else if (node->first->next == NULL) {
 		switch (node->info->type) {
+		case P4C_TOKEN_LOGICAL_NOT:
+			// If 0 return 1, if 1 return 0
+			if (target == 0xFF) {
+				p4c_gen_expression(state, node->first, P4C_R4);
+				ins.op = P4C_OP_NEG;
+				ins.arg1 = P4C_R4;
+				p4c_put_instruction(state, &ins);
+				p4c_put_u16(state, P4C_R5, 1);
+				ins.op = P4C_OP_AND;
+				ins.arg1 = P4C_R4;
+				ins.arg2 = P4C_R4;
+				ins.arg3 = P4C_R5;
+				p4c_put_instruction(state, &ins);
+				p4c_push_temp_var(state, P4C_R4);
+			}
+			else {
+				unsigned char reg = target == P4C_R4 ? P4C_R5 : P4C_R4;
+				p4c_gen_expression(state, node->first, target);
+				ins.op = P4C_OP_NEG;
+				ins.arg1 = target;
+				p4c_put_instruction(state, &ins);
+				p4c_put_u16(state, reg, 1);
+				ins.op = P4C_OP_AND;
+				ins.arg1 = target;
+				ins.arg2 = target;
+				ins.arg3 = reg;
+				p4c_put_instruction(state, &ins);
+			}
+			break;
 		case P4C_TOKEN_ADD:
 			// Do nothing
 			type = p4c_gen_expression(state, node->first, target);
@@ -975,13 +1053,19 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 		case P4C_TOKEN_BINARY_AND:
 		case P4C_TOKEN_BINARY_OR:
 		case P4C_TOKEN_BINARY_XOR:
+		case P4C_TOKEN_LOGICAL_AND:
+		case P4C_TOKEN_LOGICAL_OR:
+		case P4C_TOKEN_LOGICAL_XOR:
 		{
 			unsigned char op = P4C_OP_ADD;
 			switch (node->info->type) {
 			case P4C_TOKEN_ADD: op = P4C_OP_ADD; break;
 			case P4C_TOKEN_SUBTRACT: op = P4C_OP_SUB; break;
+			case P4C_TOKEN_LOGICAL_AND:
 			case P4C_TOKEN_BINARY_AND: op = P4C_OP_AND; break;
+			case P4C_TOKEN_LOGICAL_OR:
 			case P4C_TOKEN_BINARY_OR: op = P4C_OP_OR; break;
+			case P4C_TOKEN_LOGICAL_XOR:
 			case P4C_TOKEN_BINARY_XOR: op = P4C_OP_XOR; break;
 			}
 
@@ -1007,6 +1091,47 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 			
 			break;
 		}
+
+		case P4C_TOKEN_EQUAL:
+		case P4C_TOKEN_DIFFERENT:
+		case P4C_TOKEN_GREATER:
+		case P4C_TOKEN_LESS:
+		case P4C_TOKEN_GEQUAL:
+		case P4C_TOKEN_LEQUAL:
+		{
+			unsigned char op = P4C_OP_ADD;
+			switch (node->info->type) {
+			case P4C_TOKEN_EQUAL: op = P4C_OP_BR_Z; break;
+			case P4C_TOKEN_DIFFERENT: op = P4C_OP_BR_NZ; break;
+			case P4C_TOKEN_GREATER: op = P4C_OP_BR_P; break;
+			case P4C_TOKEN_LESS: op = P4C_OP_BR_N; break;
+			case P4C_TOKEN_GEQUAL: op = P4C_OP_BR_NN; break;
+			case P4C_TOKEN_LEQUAL: op = P4C_OP_BR_NP; break;
+			}
+
+			p4c_gen_expression(state, node->first, 0xFF);
+			p4c_gen_expression(state, node->first->next, P4C_R5);
+			p4c_pop_temp_var(state, P4C_R4);
+
+			unsigned char reg = target == 0xFF ? P4C_R4 : target;
+
+			ins.op = P4C_OP_SUB;
+			ins.arg1 = P4C_R4;
+			ins.arg2 = P4C_R4;
+			ins.arg3 = P4C_R5;
+			p4c_put_instruction(state, &ins);
+			p4c_jmp_ahead(state, op, 5);
+			p4c_put_u16(state, reg, 0);
+			p4c_jmp_ahead(state, P4C_OP_BR, 3);
+			p4c_put_u16(state, reg, 1);
+
+			if (target == 0xFF) {
+				p4c_push_temp_var(state, reg);
+			}
+
+			break;
+		}
+
 		case P4C_TOKEN_ASSIGN:
 		{
 			p4c_gen_expression(state, node->first->next, 0xFF);
@@ -1154,6 +1279,7 @@ static void p4c_gen_let_statement(p4c_generator_state_t* state, const p4c_node_t
 }
 
 static void p4c_gen_if_statement(p4c_generator_state_t* state, const p4c_node_t* node) {
+	
 	// TODO
 }
 
@@ -1182,7 +1308,7 @@ static void p4c_gen_compound_statement(p4c_generator_state_t* state, const p4c_n
 	}
 }
 
-static void p4c_gen_function(p4c_generator_state_t* state, const p4c_function_t* func) {
+static void p4c_gen_function(p4c_generator_state_t* state, p4c_function_t* func) {
 	state->current_func = func;
 	p4c_push_stack_frame(state);
 	p4c_put_label(state, func->label);

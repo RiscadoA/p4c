@@ -92,6 +92,10 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 	if (ins->arg3 == 0xFF) { PRINT_LABEL(ins->arg1, ins->arg2); }\
 	else { PRINT_REG(ins->arg3); }\
 	} while(0)
+#define PRINT_PADDRESS_BR() do {\
+	if (ins->arg3 == 0xFF) { PRINT_LABEL(ins->arg1, ins->arg2); }\
+	else { PRINT_INT(0, ins->arg3); }\
+	} while(0)
 
 	switch (ins->op) {
 	case P4C_OP_NEG: op_str = "NEG     "; PRINT_REG(ins->arg1); break;
@@ -118,17 +122,17 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 	case P4C_OP_RORC: op_str = "RORC    "; PRINT_REG(ins->arg1); break;
 	case P4C_OP_ROLC: op_str = "ROLC    "; PRINT_REG(ins->arg1); break;
 
-	case P4C_OP_BR: op_str = "BR      "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_Z: op_str = "BR.Z    "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_NZ: op_str = "BR.NZ   "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_N: op_str = "BR.N    "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_NN: op_str = "BR.NN   "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_P: op_str = "BR.P    "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_NP: op_str = "BR.NP   "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_C: op_str = "BR.C    "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_NC: op_str = "BR.NC   "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_O: op_str = "BR.O    "; PRINT_PADDRESS(); break;
-	case P4C_OP_BR_NO: op_str = "BR.NO   "; PRINT_PADDRESS(); break;
+	case P4C_OP_BR: op_str = "BR      "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_Z: op_str = "BR.Z    "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_NZ: op_str = "BR.NZ   "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_N: op_str = "BR.N    "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_NN: op_str = "BR.NN   "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_P: op_str = "BR.P    "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_NP: op_str = "BR.NP   "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_C: op_str = "BR.C    "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_NC: op_str = "BR.NC   "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_O: op_str = "BR.O    "; PRINT_PADDRESS_BR(); break;
+	case P4C_OP_BR_NO: op_str = "BR.NO   "; PRINT_PADDRESS_BR(); break;
 	case P4C_OP_JMP: op_str = "JMP     "; PRINT_PADDRESS(); break;
 	case P4C_OP_JMP_Z: op_str = "JMP.Z   "; PRINT_PADDRESS(); break;
 	case P4C_OP_JMP_NZ: op_str = "JMP.NZ  "; PRINT_PADDRESS(); break;
@@ -182,6 +186,7 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 #undef PRINT_2_REG
 #undef PRINT_3_REG
 #undef PRINT_PADDRESS
+#undef PRINT_PADDRESS_BR
 }
 
 void p4c_build_output(const p4c_instruction_t* instructions, int instruction_count, char* str, int str_sz) {
