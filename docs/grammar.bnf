@@ -38,4 +38,4 @@ digit ::= "0" | "1" | ... | "9"
 
 identifier ::= letter ( letter | digit | "_" )+
 
-int-literal ::= digit+ { "b" | "o" | "d" | "h" }
+int-literal ::= { "0x" | "0d" | "0b" } digit+ 

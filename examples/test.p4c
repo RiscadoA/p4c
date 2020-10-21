@@ -20,16 +20,12 @@ fn dumb_mul(x: u16, y: u16) -> u16 {
 	return ans;
 }*/
 
-fn add(x: i16, y: i16) -> i16 {
+fn add(x: u16, y: u16) -> u16 {
 	return x + y;
 }
 
 fn main() -> void {
-	let x = 3;
-	let y = &x;
-	let z: i16 = ~(*y as i16 + 4);
-	if (x > 0 || x < 0) && &z == y as *i16 {
-		
-	}
+	let x = add(0x10, shr(0b10));
+	let z = (x = x + 4) + 1;
 	return;
 }

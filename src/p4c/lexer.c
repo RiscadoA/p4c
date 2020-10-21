@@ -181,11 +181,35 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 	// Integer literal
 	if (p4c_is_numeric(*state->it)) {
 		attr_it = 0;
-		p4c_bool_t must_end = P4C_FALSE;
+		int base = 10;
+
+		if (state->it[0] == '0' && (state->it[1] == 'x' || state->it[1] == 'd' || state->it[1] == 'b')) {
+			if (state->it[1] == 'x') {
+				base = 16;
+			}
+			else if (state->it[1] == 'b') {
+				base = 2;
+			}
+			attr_it += 2;
+		}
 
 		while (1) {
 			++attr_it;
-			if (p4c_is_whitespace(state->it[attr_it]) || (!p4c_is_numeric(state->it[attr_it]) && !p4c_is_alpha(state->it[attr_it]))) {
+
+			p4c_bool_t is_valid = P4C_FALSE;
+			if (base == 2 && state->it[attr_it] >= '0' && state->it[attr_it] <= '1') {
+				is_valid = P4C_TRUE;
+			}
+			else if (base == 10 && state->it[attr_it] >= '0' && state->it[attr_it] <= '9') {
+				is_valid = P4C_TRUE;
+			}
+			else if (base == 16 && (state->it[attr_it] >= '0' && state->it[attr_it] <= '9' ||
+				(state->it[attr_it] >= 'A' && state->it[attr_it] <= 'F') ||
+				(state->it[attr_it] >= 'a' && state->it[attr_it] <= 'f'))) {
+				is_valid = P4C_TRUE;
+			}
+
+			if (p4c_is_whitespace(state->it[attr_it]) || (!is_valid && !p4c_is_alpha(state->it[attr_it]))) {
 				tok.attribute = state->it;
 				tok.attribute_sz = attr_it;
 				tok.info = &P4C_TINFO_INT_LITERAL;
@@ -193,13 +217,7 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 				state->it += attr_it;
 				return P4C_TRUE;
 			}
-			else if (state->it[attr_it] == 'h' || state->it[attr_it] == 'd' || state->it[attr_it] == 'b') {
-				must_end = P4C_TRUE;
-			}
-			else if (!p4c_is_numeric(state->it[attr_it])) {
-				break;
-			}
-			else if (must_end) {
+			else if (!is_valid) {
 				break;
 			}
 		}
