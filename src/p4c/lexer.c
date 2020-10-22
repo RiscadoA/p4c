@@ -9,6 +9,8 @@ const p4c_token_info_t P4C_TINFO_BOOL = { P4C_TOKEN_BOOL, P4C_TRUE, P4C_FALSE, P
 
 const p4c_token_info_t P4C_TINFO_INT_LITERAL = { P4C_TOKEN_INT_LITERAL, P4C_FALSE, P4C_FALSE, P4C_FALSE, "int_literal" };
 const p4c_token_info_t P4C_TINFO_IDENTIFIER = { P4C_TOKEN_IDENTIFIER, P4C_FALSE, P4C_FALSE, P4C_FALSE, "identifier" };
+const p4c_token_info_t P4C_TINFO_CHAR_LITERAL = { P4C_TOKEN_CHAR_LITERAL, P4C_FALSE, P4C_FALSE, P4C_FALSE, "char-literal" };
+const p4c_token_info_t P4C_TINFO_STRING_LITERAL = { P4C_TOKEN_STRING_LITERAL, P4C_FALSE, P4C_FALSE, P4C_FALSE, "string-literal" };
 
 const p4c_token_info_t P4C_TINFO_FUNCTION = { P4C_TOKEN_FUNCTION, P4C_FALSE, P4C_FALSE, P4C_FALSE, "function" };
 const p4c_token_info_t P4C_TINFO_IF = { P4C_TOKEN_IF, P4C_FALSE, P4C_FALSE, P4C_FALSE, "if" };
@@ -247,6 +249,52 @@ static p4c_bool_t p4c_read_token(p4c_lexer_state_t* state) {
 				return P4C_TRUE;
 			}
 			else if (!p4c_is_alpha(state->it[attr_it]) && !p4c_is_numeric(state->it[attr_it]) && state->it[attr_it] != '_') {
+				break;
+			}
+		}
+	}
+
+	// String literal
+	if (*state->it == '"') {
+		attr_it = 0;
+
+		while (1) {
+			++attr_it;
+			if (state->it[attr_it] == '"') {
+				tok.attribute = state->it;
+				tok.attribute_sz = attr_it;
+				tok.info = &P4C_TINFO_STRING_LITERAL;
+				p4c_put_token(state, &tok);
+				state->it += attr_it + 1;
+				return P4C_TRUE;
+			}
+			else if (state->it[attr_it] == '\\') {
+				attr_it += 1;
+			}
+			else if (state->it[attr_it] == '\0') {
+				break;
+			}
+		}
+	}
+
+	// Char literal
+	if (*state->it == '\'') {
+		attr_it = 0;
+
+		while (1) {
+			++attr_it;
+			if (state->it[attr_it] == '\'') {
+				tok.attribute = state->it + 1;
+				tok.attribute_sz = attr_it;
+				tok.info = &P4C_TINFO_CHAR_LITERAL;
+				p4c_put_token(state, &tok);
+				state->it += attr_it + 1;
+				return P4C_TRUE;
+			}
+			else if (state->it[attr_it] == '\\') {
+				attr_it += 1;
+			}
+			else if (state->it[attr_it] == '\0') {
 				break;
 			}
 		}

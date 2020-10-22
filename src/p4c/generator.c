@@ -82,7 +82,7 @@ typedef struct {
 	int temp_stack_sz;
 } p4c_generator_state_t;
 
-static int p4c_get_literal_val(const char* str, int str_sz) {
+static int p4c_get_int_literal_val(const char* str, int str_sz) {
 	int base = 10;
 	if (str_sz >= 3 && str[0] == '0') {
 		if (str[1] == 'x') {
@@ -103,6 +103,13 @@ static int p4c_get_literal_val(const char* str, int str_sz) {
 	}
 
 	return strtol(str, NULL, base);
+}
+
+static int p4c_get_char_literal_val(const char* str, int str_sz) {
+	if (*str == '\\') {
+		str += 1;
+	}
+	return *str;
 }
 
 static void p4c_put_label(p4c_generator_state_t* state, int label) {
@@ -456,6 +463,12 @@ static p4c_expression_type_t p4c_analyze_expression(p4c_generator_state_t* state
 		
 
 	case P4C_TOKEN_INT_LITERAL:
+		type.value_type.base = &P4C_TINFO_U16;
+		type.value_type.indirection = 0;
+		type.is_reference = P4C_FALSE;
+		break;
+
+	case P4C_TOKEN_CHAR_LITERAL:
 		type.value_type.base = &P4C_TINFO_U16;
 		type.value_type.indirection = 0;
 		type.is_reference = P4C_FALSE;
@@ -860,11 +873,22 @@ static p4c_expression_type_t p4c_gen_expression(p4c_generator_state_t* state, co
 		case P4C_TOKEN_INT_LITERAL:
 		{
 			if (target == 0xFF) {
-				p4c_put_u16(state, P4C_R4, p4c_get_literal_val(node->attribute, node->attribute_sz));
+				p4c_put_u16(state, P4C_R4, p4c_get_int_literal_val(node->attribute, node->attribute_sz));
 				p4c_push_temp_var(state, P4C_R4);
 			}
 			else {
-				p4c_put_u16(state, target, p4c_get_literal_val(node->attribute, node->attribute_sz));
+				p4c_put_u16(state, target, p4c_get_int_literal_val(node->attribute, node->attribute_sz));
+			}
+			break;
+		}
+		case P4C_TOKEN_CHAR_LITERAL:
+		{
+			if (target == 0xFF) {
+				p4c_put_u16(state, P4C_R4, p4c_get_char_literal_val(node->attribute, node->attribute_sz));
+				p4c_push_temp_var(state, P4C_R4);
+			}
+			else {
+				p4c_put_u16(state, target, p4c_get_char_literal_val(node->attribute, node->attribute_sz));
 			}
 			break;
 		}

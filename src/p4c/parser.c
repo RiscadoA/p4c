@@ -195,6 +195,26 @@ static p4c_node_t* p4c_parse_operator_last(p4c_parser_state_t* state) {
 		return out_node;
 	}
 
+	// <~string-literal>
+	tok = p4c_accept_token(state, &P4C_TINFO_STRING_LITERAL);
+	if (tok != NULL) {
+		out_node = p4c_get_node(state);
+		out_node->info = tok->info;
+		out_node->attribute = tok->attribute;
+		out_node->attribute_sz = tok->attribute_sz;
+		return out_node;
+	}
+
+	// <char-literal>
+	tok = p4c_accept_token(state, &P4C_TINFO_CHAR_LITERAL);
+	if (tok != NULL) {
+		out_node = p4c_get_node(state);
+		out_node->info = tok->info;
+		out_node->attribute = tok->attribute;
+		out_node->attribute_sz = tok->attribute_sz;
+		return out_node;
+	}
+
 	// <true>
 	tok = p4c_accept_token(state, &P4C_TINFO_TRUE);
 	if (tok != NULL) {

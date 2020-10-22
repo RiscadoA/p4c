@@ -29,6 +29,8 @@ int p4c_run_lexer(const char* source_code, p4c_token_t* tokens, int tokens_sz);
 
 #define P4C_TOKEN_INT_LITERAL			0x10
 #define P4C_TOKEN_IDENTIFIER			0x11
+#define P4C_TOKEN_CHAR_LITERAL			0x12
+#define P4C_TOKEN_STRING_LITERAL		0x13
 
 #define P4C_TOKEN_FUNCTION				0x20
 #define P4C_TOKEN_IF					0x21
@@ -81,6 +83,8 @@ const p4c_token_info_t P4C_TINFO_BOOL;
 
 const p4c_token_info_t P4C_TINFO_INT_LITERAL;
 const p4c_token_info_t P4C_TINFO_IDENTIFIER;
+const p4c_token_info_t P4C_TINFO_CHAR_LITERAL;
+const p4c_token_info_t P4C_TINFO_STRING_LITERAL;
 
 const p4c_token_info_t P4C_TINFO_FUNCTION;
 const p4c_token_info_t P4C_TINFO_IF;
