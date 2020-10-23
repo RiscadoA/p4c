@@ -7,9 +7,12 @@
 typedef struct {
 	char* it;
 	char* it_end;
+	p4c_meta_data_t* meta_data;
 } p4c_output_state_t;
 
-static void p4c_write_str(p4c_output_state_t* state, const char* str) {
+static int p4c_write_str(p4c_output_state_t* state, const char* str) {
+	int sz = 0;
+
 	while (*str != '\0') {
 		if (state->it > state->it_end) {
 			fprintf(stderr, "Output stage failed:\nOutput string buffer overflow detected\n");
@@ -19,7 +22,10 @@ static void p4c_write_str(p4c_output_state_t* state, const char* str) {
 		*state->it = *str;
 		++state->it;
 		++str;
+		++sz;
 	}
+
+	return sz;
 }
 
 static void p4c_write_label(p4c_output_state_t* state, unsigned int label, p4c_bool_t force_16_chr) {
@@ -36,6 +42,12 @@ static void p4c_write_label(p4c_output_state_t* state, unsigned int label, p4c_b
 		d /= 10;
 	}
 
+	for (int j = 0; j < i / 2; ++j) {
+		char swp = str[j + 1];
+		str[j + 1] = str[i - j - 1];
+		str[i - j - 1] = swp;
+	}
+
 	str[i++] = ':';
 
 	if (force_16_chr) {
@@ -48,7 +60,43 @@ static void p4c_write_label(p4c_output_state_t* state, unsigned int label, p4c_b
 	p4c_write_str(state, str);
 }
 
-static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instruction_t* ins) {
+static p4c_comment_t* p4c_find_comment(p4c_output_state_t* state, int ins_index) {
+	for (p4c_comment_t* comment = state->meta_data->comment; comment != NULL; comment = comment->next) {
+		if (comment->instruction == ins_index) {
+			return comment;
+		}
+	}
+	return NULL;
+}
+
+static p4c_comment_t* p4c_put_comments(p4c_output_state_t* state, int index) {
+	p4c_comment_t* last = NULL;
+
+	for (p4c_comment_t* comment = state->meta_data->comment; comment != NULL; comment = comment->next) {
+		if (comment->instruction == index) {
+			last = comment;
+		}
+	}
+
+	for (p4c_comment_t* comment = state->meta_data->comment; comment != NULL; comment = comment->next) {
+		if (comment->instruction == index) {
+			if (comment != last) {
+				for (int i = 0; i < 40; ++i) {
+					p4c_write_str(state, " ");
+				}
+				p4c_write_str(state, "; ");
+				p4c_write_str(state, comment->txt);
+				p4c_write_str(state, "\n");
+			}
+		}
+	}
+
+	return last;
+}
+
+static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instruction_t* ins, int index) {
+	p4c_comment_t* comment = p4c_put_comments(state, index);
+
 	if (ins->label != 0) {
 		p4c_write_label(state, ins->label, P4C_TRUE);
 	}
@@ -175,7 +223,14 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 
 	arg_str[arg_str_i] = '\0';
 	p4c_write_str(state, op_str);
-	p4c_write_str(state, arg_str);
+	int sz = p4c_write_str(state, arg_str);
+	if (comment != NULL) {
+		for (int i = sz; i < 16; ++i) {
+			p4c_write_str(state, " ");
+		}
+		p4c_write_str(state, "; ");
+		p4c_write_str(state, comment->txt);
+	}
 	p4c_write_str(state, "\n");
 
 #undef PRINT_REG
@@ -189,13 +244,14 @@ static void p4c_write_instruction(p4c_output_state_t* state, const p4c_instructi
 #undef PRINT_PADDRESS_BR
 }
 
-void p4c_build_output(const p4c_instruction_t* instructions, int instruction_count, char* str, int str_sz) {
+void p4c_build_output(const p4c_instruction_t* instructions, int instruction_count, const p4c_meta_data_t* meta_data, char* str, int str_sz) {
 	p4c_output_state_t state;
 	state.it = str;
 	state.it_end = str + str_sz - 1;
+	state.meta_data = meta_data;
 
 	for (int i = 0; i < instruction_count; ++i) {
-		p4c_write_instruction(&state, &instructions[i]);
+		p4c_write_instruction(&state, &instructions[i], i);
 	}
 
 	*state.it = '\0';

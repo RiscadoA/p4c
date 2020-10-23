@@ -145,11 +145,12 @@ int main(int argc, char** argv) {
 
     // Run generator
     p4c_instruction_t* instructions = (p4c_instruction_t*)malloc(65536 * sizeof(p4c_instruction_t));
-    int instruction_count = p4c_run_generator(ast, instructions, 65536);
+    p4c_meta_data_t meta_data;
+    int instruction_count = p4c_run_generator(ast, instructions, 65536, &meta_data);
 
     // Output instructions
     char* output = (char*)malloc(65536 * sizeof(char));
-    p4c_build_output(instructions, instruction_count, output, 65536);
+    p4c_build_output(instructions, instruction_count, &meta_data, output, 65536);
 
     if (out_file != NULL) {
         FILE* f = fopen(out_file, "wb");

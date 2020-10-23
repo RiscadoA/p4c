@@ -90,4 +90,16 @@ typedef struct {
 	unsigned char op, arg1, arg2, arg3;
 } p4c_instruction_t;
 
-int p4c_run_generator(const p4c_node_t* ast, p4c_instruction_t* instructions, int instructions_sz);
+typedef struct p4c_comment_t p4c_comment_t;
+
+struct p4c_comment_t {
+	int instruction;
+	char txt[64];
+	p4c_comment_t* next;
+};
+
+typedef struct {
+	p4c_comment_t* comment;
+} p4c_meta_data_t;
+
+int p4c_run_generator(const p4c_node_t* ast, p4c_instruction_t* instructions, int instructions_sz, p4c_meta_data_t* meta_data);

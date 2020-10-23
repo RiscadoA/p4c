@@ -1,42 +1,108 @@
-/*fn fast_mul(x: u16, y: u16) -> u16 {
+fn mul(x: u16, y: u16) -> u16 {
 	if y == 0 {
 		return 0;
 	}
-	else if y & 1 == 0 {
-		return shl(fast_mul(x, shr(y)));
+	if (y & 1) == 0 {
+		return shl(mul(x, shr(y)));
 	}
 	else {
 		return x + mul(x, y - 1);
 	}
 }
 
-fn dumb_mul(x: u16, y: u16) -> u16 {
-	let ans: u16 = 0;
-	let i: u16 = y;
-	while i < y {
-		ans = ans + x;
-		i = i + 1;
-	}
-	return ans;
-}*/
 
-fn write_chr(chr: u16) -> void {
-	*(0xFFFE as *u16) = chr;
+fn shl_n(x: u16, y: u16) -> u16 {
+	while y > 0 {
+		--y;
+		x = shl(x);
+	}
+	return x;
+}
+
+fn max(x: u16, y: u16) -> u16 {
+	if x >= y {
+		return x;
+	}
+	else {
+		return y;
+	}
+}
+
+fn clear() -> void {
+	let y = 0;
+	while y <= 44 {
+		*(0xFFFC as *u16) = shl_n(y, 8);
+		let x = 0;
+		while x <= 79 {
+			*(0xFFFE as *u16) = ' ';
+			++x;
+		}
+		++y;
+	}
+
 	return;
 }
 
+fn new_line(line_it: *u16) -> void {
+	++*line_it;
+	if *line_it > 44 {
+		clear();
+		*line_it = 0;
+	}
+	*(0xFFFC as *u16) = shl_n(*line_it, 8);
+	return;
+}
+
+fn write_chr(chr: u16) -> void {
+    *(0xFFFE as *u16) = chr;
+    return;
+}
+
+fn write_digit(x: u16) -> void {
+	write_chr('0' + x);
+    return;
+}
+
+fn get_input() -> u16 {
+	while *(0xFFFD as *u16) == 0 {
+		// Wait for input
+	}
+
+	let c = *(0xFFFF as *u16);
+	write_chr(c);
+	return c - '0';
+}
+
 fn main() -> void {
-	write_chr('H');
-	write_chr('e');
-	write_chr('l');
-	write_chr('l');
-	write_chr('o');
-	write_chr(' ');
-	write_chr('W');
-	write_chr('o');
-	write_chr('r');
-	write_chr('l');
-	write_chr('d');
-	write_chr('!');
+	let line_it = 0;
+	
+	while true {
+		write_chr('X');
+		write_chr(':');
+		write_chr(' ');
+		let x = get_input();
+		new_line(&line_it);
+
+		write_chr('Y');
+		write_chr(':');
+		write_chr(' ');
+		let y = get_input();
+		new_line(&line_it);
+
+		write_chr('M');
+		write_chr('a');
+		write_chr('x');
+		write_chr('(');
+		write_chr('X');
+		write_chr(',');
+		write_chr(' ');
+		write_chr('Y');
+		write_chr(')');
+		write_chr(':');
+		write_chr(' ');
+		write_digit(max(x, y));
+		new_line(&line_it);
+	}
+
 	return;
 }
