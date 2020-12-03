@@ -7,7 +7,6 @@ This project aims to build a compiler that can compile from a Rust like language
 [CMake](https://cmake.org/) is used to build this project.
 
 ## To Do
-- `if` and `while` branching;
 - Global variables;
 - Arrays;
 - Tuples;
